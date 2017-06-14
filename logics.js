@@ -40,10 +40,10 @@ exports.getCommentTextForDisqus = getCommentTextForDisqus;
 
 const getAnalysisOfDisqusComments = (commentText, callback) => {
   const form = {
-    text: commentText,
     linkedData: 1,
+    text: commentText,
   };
-  
+
   const formData = querystring.stringify(form);
   const contentLength = formData.length;
 
@@ -75,13 +75,30 @@ const getDisqusAnalysisForUser = (userDirectory, callback) => {
   getAnalysisOfDisqusCommentsAsync(disqusCommentText)
     .then((response) => {
       const writePath = `${userDirectory}/disqusAnalysis.json`;
-      return fs.writeFileAsync(writePath, response);
+      const parsedResponse = JSON.parse(response);
+      const responseToPrint = JSON.stringify(parsedResponse, null, 2);
+      fs.writeFile(writePath, responseToPrint);
+      const status = parsedResponse.status;
+
+      if (!status || status !== 'OK' || !parsedResponse.entities) {
+        console.log('Failed to fetch entities');
+        console.log(JSON.stringify(response, null, 2));
+        callback(null, {
+          status: false,
+          response: parsedResponse,
+        });
+        return;
+      }
+
+      callback(null, {
+        status: true,
+        response: parsedResponse,
+      });
     })
-    .then(() => callback())
     .catch((err) => {
       callback(err);
     })
-  
+
 };
 
 exports.getDisqusAnalysisForUser = getDisqusAnalysisForUser;

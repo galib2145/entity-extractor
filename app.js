@@ -4,82 +4,57 @@ var querystring = require('querystring');
 const async = require('async');
 
 const logics = require('./logics');
-
-const fileContent = fs.readFileSync('disqus_comments.json').toString();
-const disqusProfileData = JSON.parse(fileContent);
-const comments = disqusProfileData.comments;
-
-let totalText = '';
-
-const rootDirectory = '/home/saad/demo';
-
-for (let i = 0; i < comments.length; i++) {
-    const comment = comments[i];
-    const commentText = comment.post;
-    const totalLength = totalText.length + commentText.length + 1;
-
-    if (totalLength > 10000) {
-        break;
-    }
-
-    totalText += commentText;
-}
-
-const form = {
-    text: totalText,
-    linkedData: 1,
-};
-
-const formData = querystring.stringify(form);
-const contentLength = formData.length;
-
-const options = {
-    headers: {
-        'Content-Length': contentLength,
-        'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    uri: 'https://alchemy-language-demo.mybluemix.net/api/entities',
-    body: formData,
-    method: 'POST',
-}
-
-const requestData = (callback) => {
-    request(options, (err, response, body) => {
-        if (err) {
-            callback(err);
-            return;
-        }
-
-        callback(null, JSON.parse(body));
-    });
-};
-
+const rootDirectory = '/home/saad-galib/media'
 const userDirectories = logics.getDirectories(rootDirectory);
+let successNum = 0;
+let successList = [];
+let failNum = 0;
+let failList = [];
 
 const disqusAnalysisTask = (userDirectory, taskIndex, callback) => {
-    console.log(`Executing task: ${taskIndex}`);
-    logics.getDisqusAnalysisForUser(userDirectory, (err) => {
-        if (err) {
-            callback(err);
-            return;
-        }
+  console.log(`\nExecuting task: ${taskIndex}`);
+  console.log(`Directory: ${userDirectory}`);
+  logics.getDisqusAnalysisForUser(userDirectory, (err, result) => {
+    if (err) {
+      callback(err);
+      return;
+    }
 
-        callback();
-    });
+    const user = userDirectory.split('/')[4];
+
+    if (result.status) {
+      successNum += 1;
+      successList.push(user);
+    } else {
+      failNum += 1;
+      failList.push({
+        user,
+        response: result.response,
+      });
+    }
+
+    callback();
+  });
 };
 
 
-async.forEachOfSeries(userDirectories, disqusAnalysisTask, (err) => {
-    if (err) {
-        console.log(err);
-        return;
-    }
+async.forEachOfSeries(userDirectories.slice(2001, userDirectories.length), disqusAnalysisTask, (err) => {
+  if (err) {
+    console.log(err);
+    return;
+  }
 
-    console.log('Tasks executed successfully');
+  const successData = JSON.stringify({
+    successList,
+    num: successNum,
+  }, null, 2);
+
+  const failData = JSON.stringify({
+    failList,
+    num: failNum,
+  }, null, 2);
+
+  fs.writeFile('./success.json', successData);
+  fs.writeFile('./fail.json', failData);
+  console.log('Tasks executed successfully');
 });
-
-
-
-
-
-

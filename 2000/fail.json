@@ -1,0 +1,488 @@
+{
+  "failList": [
+    {
+      "user": "10032_tapir",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "101663_jakobbg",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "103931_yosshi",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "104003_vienuolis",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "105201_xlinnheidix",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "106546_kangbud",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "10773_wyctim",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "107_cowcfj",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "1116_jjmajava",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "116712_morpheous",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "117378_muki",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "117999_nanakamado",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "118233_marlouvwxyz",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "118454_mortenprom",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "121015_naseer",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "123704_mskogly",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "124716_stralunato",
+      "response": {
+        "code": 400,
+        "error": "content-is-empty"
+      }
+    },
+    {
+      "user": "126351_jhonly",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "135337_kvinnamedklass",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "135761_pollux",
+      "response": {
+        "code": 400,
+        "error": "content-is-empty"
+      }
+    },
+    {
+      "user": "137700_farridhusin",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "138840_AATON",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "140474_kurniasepta",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "14054_tomer",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "140857_jrosell",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "140896_popydo",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "143401_HujanEmas",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "143608_soma1104",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "144674_picobird",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "146211_drnasseer",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "1464_vrypan",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "147590_sofiagk",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "150664_9tana",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "151134_archmond",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "15235_yutalee",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "1526_imitation78",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "153522_chrismarks",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "154548_hidenorigoto",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "160948_Aaaaaaammmmmbbbbeeeerrrr",
+      "response": {
+        "code": 400,
+        "error": "content-is-empty"
+      }
+    },
+    {
+      "user": "162102_vhs",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "16264_pemmax",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "163528_fuzzy76",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "163539_ratmed",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "164611_littlebytes",
+      "response": {
+        "code": 400,
+        "error": "content-is-empty"
+      }
+    },
+    {
+      "user": "167751_forteller",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "170486_tkhwang",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "17158_messo",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "171724_kikileong",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "17474_Andhi",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "176562_Kirsten_W",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "177956_redhotka",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "178754_alderina",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "182530_machal",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "182850_vartios",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "183999_nazra",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "188464_nchild",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "188744_JarlePetterson",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "190092_akhavr",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "193670_kristjanotsmann",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "193698_yangluenwei",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "194022_umitkaratay",
+      "response": {
+        "code": 400,
+        "error": "content-is-empty"
+      }
+    },
+    {
+      "user": "195615_sistol",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "196372_cerebrux",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "196636_PinkBoy",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "197092_abdulahmustafa",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "197205_kobak",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "198986_toxotis",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "199499_dagblakstad",
+      "response": {
+        "code": 400,
+        "error": "unsupported-text-language"
+      }
+    },
+    {
+      "user": "20807_brooklynmark",
+      "response": {
+        "code": 400,
+        "error": "content-is-empty"
+      }
+    }
+  ],
+  "num": 69
+}
