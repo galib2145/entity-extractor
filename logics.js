@@ -65,6 +65,7 @@ const getAnalysisOfDisqusComments = (commentText, callback) => {
     linkedData: 1,
     text: commentText,
     sentiment: 1,
+    emotion: 1,
   };
 
   const formData = querystring.stringify(form);
