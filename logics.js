@@ -52,7 +52,7 @@ const getCommentTextSetForDisqus = (filePath, setSize) => {
       endIndex: comments.length - 1,
       endTime: comments[comments.length - 1].time,
     };
-    commentTextSet.push(totalText);
+    commentTextSet.push(commentText);
   }
 
   return commentTextSet;
@@ -60,10 +60,10 @@ const getCommentTextSetForDisqus = (filePath, setSize) => {
 
 exports.getCommentTextSetForDisqus = getCommentTextSetForDisqus;
 
-const getAnalysisOfDisqusComments = (commentText, callback) => {
+const getAlchemyAnalysis = (text, callback) => {
   const form = {
     linkedData: 1,
-    text: commentText,
+    text,
     sentiment: 1,
     emotion: 1,
   };
@@ -92,7 +92,7 @@ const getAnalysisOfDisqusComments = (commentText, callback) => {
   });
 };
 
-exports.getAnalysisOfDisqusComments = getAnalysisOfDisqusComments;
+exports.getAlchemyAnalysis = getAlchemyAnalysis;
 
 const constructDisqusAnalysisEntryForUser = (disqusCommentTextSet, alchemyResponseList) => {
   const commentTextAnalysisList = [];
@@ -117,9 +117,9 @@ const constructDisqusAnalysisEntryForUser = (disqusCommentTextSet, alchemyRespon
 }
 
 const getDisqusAnalysisForUser = (userDirectory, callback) => {
-  const getAnalysisOfDisqusCommentsAsync = Promise.promisify(getAnalysisOfDisqusComments);
+  const getAlchemyAnalysisAsync = Promise.promisify(getAlchemyAnalysis);
   const disqusCommentTextSet = getCommentTextSetForDisqus(userDirectory, 2000);
-  const disqusAnalysisTasks = disqusCommentTextSet.map((disqusCommentText) => getAnalysisOfDisqusCommentsAsync(disqusCommentText.text));
+  const disqusAnalysisTasks = disqusCommentTextSet.map((disqusCommentText) => getAlchemyAnalysisAsync(disqusCommentText.text));
 
   Promise.all(disqusAnalysisTasks)
     .then((alchemyResponseList) => {
