@@ -60,7 +60,7 @@ const getCommentTextSetForDisqus = (filePath, setSize) => {
 
 exports.getCommentTextSetForDisqus = getCommentTextSetForDisqus;
 
-const getAlchemyAnalysis = (text, callback) => {
+const getAlchemyAnalysis = (text, index, callback) => {
   const form = {
     linkedData: 1,
     text,
@@ -79,10 +79,18 @@ const getAlchemyAnalysis = (text, callback) => {
     uri: 'https://alchemy-language-demo.mybluemix.net/api/entities',
     body: formData,
     method: 'POST',
+    timeout: 60 * 1000,
   }
 
   request(options, (err, response, body) => {
     if (err) {
+      if (err.message.includes('ETIMEDOUT') || err.message.includes('socket hang up') || err.message.includes('ESOCKETTIMEDOUT')) {
+        setTimeout(() => {
+          getAlchemyAnalysis(text, index, callback);
+        }, 5 * 60 * 1000);
+        return;
+      }
+
       callback(err);
       return;
     }
@@ -119,7 +127,7 @@ const constructDisqusAnalysisEntryForUser = (disqusCommentTextSet, alchemyRespon
 const getDisqusAnalysisForUser = (userDirectory, callback) => {
   const getAlchemyAnalysisAsync = Promise.promisify(getAlchemyAnalysis);
   const disqusCommentTextSet = getCommentTextSetForDisqus(userDirectory, 2000);
-  const disqusAnalysisTasks = disqusCommentTextSet.map((disqusCommentText) => getAlchemyAnalysisAsync(disqusCommentText.text));
+  const disqusAnalysisTasks = disqusCommentTextSet.map((disqusCommentText, index) => getAlchemyAnalysisAsync(disqusCommentText.text, index));
 
   Promise.all(disqusAnalysisTasks)
     .then((alchemyResponseList) => {
