@@ -1,6 +1,7 @@
 const Promise = require('bluebird');
 const fs = Promise.promisifyAll(require('fs'));
 const logics = Promise.promisifyAll(require('./logics'));
+const async = require('async');
 
 const getTwitterPosts = (filePath) => {
   const twitterFilePath = `${filePath}/twitter_timeline.json`;
@@ -31,6 +32,17 @@ const constructAnalysisEntryForUser = (twitterPost, alchemyResponseList) => {
   return textAnalysisList;
 }
 
+const task = (post, callback) => {
+  logics.getAlchemyAnalysis(post.text, (err, result) => {
+    if (err) {
+      callback(err);
+      return;
+    }
+
+    callback(null, result);
+  });
+}
+
 const getTwitterAnalysisForUser = (userDirectory, callback) => {
   const twitterPosts = getTwitterPosts(userDirectory, 2000);
 
@@ -39,27 +51,25 @@ const getTwitterAnalysisForUser = (userDirectory, callback) => {
     return;
   }
 
-  const twitterAnalysisTasks = twitterPosts.map((post, index) => logics.getAlchemyAnalysisAsync(post.text, index));
-
-  Promise.all(twitterAnalysisTasks)
-    .then((alchemyResponseList) => {
-      const analysis = constructAnalysisEntryForUser(twitterPosts, alchemyResponseList);
-      const userId = userDirectory.split('/')[4];
-      const userTwitterAnalysis = {
-        userId,
-        analysis,
-      };
-
-      callback(null, userTwitterAnalysis);
-    })
-    .catch((err) => {
+  async.mapSeries(twitterPosts, task, (err, result) => {
+    if (err) {
       callback(err);
-    })
+      return;
+    }
 
+    callback(result);
+  });
 };
 
 exports.getTwitterAnalysisForUser = getTwitterAnalysisForUser;
 
-getTwitterAnalysisForUser('/home/saad-galib/media/11327_chrisvicious77', () => {
+console.log(`Start: ${new Date()}`);
+getTwitterAnalysisForUser('/home/saad-galib/media/11327_chrisvicious77', (err, result) => {
+  if (err) {
+    console.log(err);
+    return;
+  }
 
+  console.log(`End: ${new Date()}`);
+  console.log('Tasks done successfully!');
 });

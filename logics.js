@@ -60,7 +60,7 @@ const getCommentTextSetForDisqus = (filePath, setSize) => {
 
 exports.getCommentTextSetForDisqus = getCommentTextSetForDisqus;
 
-const getAlchemyAnalysis = (text, index, callback) => {
+const getAlchemyAnalysis = (text, callback) => {
   const form = {
     linkedData: 1,
     text,
@@ -86,7 +86,7 @@ const getAlchemyAnalysis = (text, index, callback) => {
     if (err) {
       if (err.message.includes('ETIMEDOUT') || err.message.includes('socket hang up') || err.message.includes('ESOCKETTIMEDOUT')) {
         setTimeout(() => {
-          getAlchemyAnalysis(text, index, callback);
+          getAlchemyAnalysis(text, callback);
         }, 5 * 60 * 1000);
         return;
       }
