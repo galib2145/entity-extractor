@@ -13,11 +13,49 @@ const getDirectories = (srcpath) => {
 
 exports.getDirectories = getDirectories;
 
-const getCommentTextSetForDisqus = (filePath, setSize) => {
-  const disqusDataFilePath = `${filePath}/disqus_comments.json`;
-  const fileContent = fs.readFileSync(disqusDataFilePath).toString();
-  const disqusProfileData = JSON.parse(fileContent);
-  const comments = disqusProfileData.comments;
+const deleteFolderRecursive = function(path) {
+  if (fs.existsSync(path)) {
+    fs.readdirSync(path).forEach(function(file, index) {
+      const curPath = path + "/" + file;
+      if (fs.lstatSync(curPath).isDirectory()) { // recurse
+        deleteFolderRecursive(curPath);
+      } else {
+        fs.unlinkSync(curPath);
+      }
+    });
+    fs.rmdirSync(path);
+  }
+};
+
+const getDisqusComments = (userId) => {
+  const userDirectory = `/media/${userId}/disqus_comments.json`;
+  const disqusDataFilePath = path.join(process.env.HOME, userDirectory);
+  try {
+    const fileContent = fs.readFileSync(disqusDataFilePath).toString();
+    const disqusProfileData = JSON.parse(fileContent);
+    return disqusProfileData.comments;
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      return [];
+    }
+  }
+};
+
+const getTwitterPosts = (userId) => {
+  const userDirectory = `/media/${userId}/twitter_timeline.json`;
+  const twitterDataFilePath = path.join(process.env.HOME, userDirectory);
+  try {
+    const fileContent = fs.readFileSync(twitterDataFilePath).toString();
+    return JSON.parse(fileContent)
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      return [];
+    }
+  };
+}
+
+const getCommentTextSetForDisqus = (userId, setSize) => {
+  const comments = getDisqusComments(userId);
   let commentTextSet = [];
   let startIndex = 0;
 
@@ -124,15 +162,14 @@ const constructDisqusAnalysisEntryForUser = (disqusCommentTextSet, alchemyRespon
   return commentTextAnalysisList;
 }
 
-const getDisqusAnalysisForUser = (userDirectory, callback) => {
+const getDisqusAnalysisForUser = (userId, callback) => {
   const getAlchemyAnalysisAsync = Promise.promisify(getAlchemyAnalysis);
-  const disqusCommentTextSet = getCommentTextSetForDisqus(userDirectory, 2000);
-  const disqusAnalysisTasks = disqusCommentTextSet.map((disqusCommentText, index) => getAlchemyAnalysisAsync(disqusCommentText.text, index));
+  const disqusCommentTextSet = getCommentTextSetForDisqus(userId, 2000);
+  const disqusAnalysisTasks = disqusCommentTextSet.map((disqusCommentText) => getAlchemyAnalysisAsync(disqusCommentText.text));
 
-  Promise.all(disqusAnalysisTasks)
+  Promise.map(disqusAnalysisTasks, { concurrency: 4 })
     .then((alchemyResponseList) => {
       const analysis = constructDisqusAnalysisEntryForUser(disqusCommentTextSet, alchemyResponseList);
-      const userId = userDirectory.split('/')[4];
       const userDisqusAnalysis = {
         userId,
         analysis,
@@ -147,3 +184,28 @@ const getDisqusAnalysisForUser = (userDirectory, callback) => {
 };
 
 exports.getDisqusAnalysisForUser = getDisqusAnalysisForUser;
+
+const shouldUserBeAnalyzed = (userId) => {
+  const twitterPosts = getTwitterPosts(userId);
+  const disqusComments = getDisqusComments(userId);
+
+  if (twitterPosts.length > 100 && disqusComments.length > 50) {
+    return true;
+  }
+
+  return false;
+};
+
+const rootDirectory = '/home/saad-galib/media';
+const userDirectories = getDirectories(rootDirectory);
+const result = userDirectories.forEach((userDirectory) => {
+  const userId = userDirectory.split('/')[4];
+  const flag = shouldUserBeAnalyzed(userId);
+
+  if (flag) {
+    return;
+  }
+
+  console.log(`Deleting ${userDirectory}`);
+  deleteFolderRecursive(userDirectory);
+});

@@ -4,10 +4,20 @@ const logics = require('./logics');
 const rootDirectory = '/home/saad-galib/media';
 const userDirectories = logics.getDirectories(rootDirectory);
 
-const getRecurrentTopicPercentage = (userId) => {
+const getDisqusTopicData = (userId) => {
   const disqusDataStoreFilePath = `/home/saad-galib/entity-analysis/${userId}/disqus-data-store.json`;
   const fileContent = fs.readFileSync(disqusDataStoreFilePath).toString();
-  const disqusTopicData = (JSON.parse(fileContent)).entityList;
+  return (JSON.parse(fileContent)).entityList;
+};
+
+const getTwitterTopicData = (userId) => {
+  const disqusDataStoreFilePath = `/home/saad-galib/entity-analysis/${userId}/twitter-data-store.json`;
+  const fileContent = fs.readFileSync(disqusDataStoreFilePath).toString();
+  return (JSON.parse(fileContent)).entityList;
+};
+
+const getRecurrentTopicPercentage = (userId) => {
+  const disqusTopicData = getDisqusTopicData(userId);
   const numtotalTopics = disqusTopicData.length;
   if (numtotalTopics === 0) {
     return 0;
@@ -18,9 +28,7 @@ const getRecurrentTopicPercentage = (userId) => {
 };
 
 const userHasTopics = (userId) => {
-  const disqusDataStoreFilePath = `/home/saad-galib/entity-analysis/${userId}/disqus-data-store.json`;
-  const fileContent = fs.readFileSync(disqusDataStoreFilePath).toString();
-  const disqusTopicData = (JSON.parse(fileContent)).entityList;
+  const disqusTopicData = getDisqusTopicData(userId);
   const numtotalTopics = disqusTopicData.length;
   if (numtotalTopics === 0) {
     return false;
@@ -45,8 +53,22 @@ const getRecurrentTopicUserPercentage = () => {
   return (validRecurrentPercentages.length / numvalidDirectories) * 100;
 }
 
-console.log(getRecurrentTopicUserPercentage());
-
 const getTopicIntersection = (userId) => {
+  const disqusTopicData = getDisqusTopicData(userId);
+  const twitterTopicData = getTwitterTopicData(userId);
 
+  const mapped = disqusTopicData.map((disqusEntry) => {
+    const match = twitterTopicData.find((twitterEntry) => twitterEntry.entity === disqusEntry.entity);
+    if (match) {
+      return 1;
+    }
+
+    return 0;
+  });
+
+  return mapped.reduce((prevVal, elem) => {
+    return prevVal + elem;
+  }, 0);
 };
+
+console.log(getTopicIntersection('1000_bigyahu'));

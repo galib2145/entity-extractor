@@ -32,17 +32,6 @@ const constructAnalysisEntryForUser = (twitterPost, alchemyResponseList) => {
   return textAnalysisList;
 }
 
-const task = (post, callback) => {
-  logics.getAlchemyAnalysis(post.text, (err, result) => {
-    if (err) {
-      callback(err);
-      return;
-    }
-
-    callback(null, result);
-  });
-}
-
 const getTwitterAnalysisForUser = (userDirectory, callback) => {
   const twitterPosts = getTwitterPosts(userDirectory, 2000);
 
@@ -51,14 +40,23 @@ const getTwitterAnalysisForUser = (userDirectory, callback) => {
     return;
   }
 
-  async.mapSeries(twitterPosts, task, (err, result) => {
-    if (err) {
-      callback(err);
-      return;
-    }
+  console.log(`Total number of posts: ${twitterPosts.length}`)
+  const analysisTask = (post) => logics.getAlchemyAnalysisAsync(post.text);
 
-    callback(result);
-  });
+  Promise.map(twitterPosts, analysisTask, { concurrency: 1 })
+    .then((alchemyResponseList) => {
+      const analysis = constructAnalysisEntryForUser(twitterPosts, alchemyResponseList);
+      const userId = userDirectory.split('/')[4];
+      const userTwitterAnalysis = {
+        userId,
+        analysis,
+      };
+
+      callback(null, userTwitterAnalysis);
+    })
+    .catch((err) => {
+      callback(err);
+    });
 };
 
 exports.getTwitterAnalysisForUser = getTwitterAnalysisForUser;
@@ -70,6 +68,7 @@ getTwitterAnalysisForUser('/home/saad-galib/media/11327_chrisvicious77', (err, r
     return;
   }
 
+  console.log(`Number of posts with entities = ${result.analysis.length}`)
   console.log(`End: ${new Date()}`);
   console.log('Tasks done successfully!');
 });

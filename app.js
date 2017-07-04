@@ -13,7 +13,6 @@ const tenMinutes = 10 * 60 * 1000;
 
 const analysisTask = (userDirectory, taskIndex, callback) => {
   const time = new Date();
-
   console.log(`\nExecuting task: ${taskIndex}`);
   console.log(`Start time: ${time}`);
   console.log(`Directory: ${userDirectory}`);
