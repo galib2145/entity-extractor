@@ -1,13 +1,9 @@
 const fs = require('fs');
-const async = require('async');
-const MongoClient = require('mongodb').MongoClient;
-const ObjectId = require('mongodb').ObjectID;
-const url = 'mongodb://localhost:27017/test';
-const logics = require('./logics');
-const rootDirectory = '/home/saad-galib/media';
-const userDirectories = logics.getDirectories(rootDirectory);
+const path = require('path');
 
-const timeParser = require('./timeParser');
+const config = require('../../config');
+const disqusAnalysisLogic = require('../analysis/disqus');
+const timeParser = require('../parsing/timeParser');
 
 const getExactEntityMentionTimes = (entityText, comments) => {
   const mentionedPosts = comments.filter((comment) => comment.post.includes(entityText));
@@ -27,7 +23,7 @@ const getProcessedEntityInfoList = (analysisList, comments) => {
 
     for (let j = 0; j < entityInfoList.length; j += 1) {
       const entityInfo = entityInfoList[j];
-      const entityText = entityInfo.text.replace(/$|\./gi, '');
+      const entityText = entityInfo.text;
       const mentionTimesStrings = getExactEntityMentionTimes(entityText, commentsToSearch);
       const mentionTimes = mentionTimesStrings.map((timeStr) => timeParser.parseTimeString(timeStr));
 
@@ -55,15 +51,15 @@ const getProcessedEntityInfoList = (analysisList, comments) => {
   return array;
 };
 
-const storeUserData = (userDirectory) => {
-  const userId = userDirectory.split('/')[4];
-  const analysisFilePath = `/home/saad-galib/entity-analysis/${userId}/disqus.json`;
-  const postsFilePath = `/home/saad-galib/media/${userId}/disqus_comments.json`;
-  const disqusDataStoreFilePath = `/home/saad-galib/entity-analysis/${userId}/disqus-data-store.json`;
-
-  const analysis = JSON.parse((fs.readFileSync(analysisFilePath))).analysis;
-  const comments = JSON.parse((fs.readFileSync(postsFilePath))).comments;
-
+const formatUserDisqusEntityAnalysis = (userId, analysis) => {
+  const disqusDataStoreFilePath = path.join(
+    process.env.HOME, 
+    config.dir.alchemyAnalysis,
+    `/${userId}`,
+    config.dir.disqusDataStore
+  );
+  
+  const comments = disqusAnalysisLogic.getDisqusComments(userId);
   const entityList = getProcessedEntityInfoList(analysis, comments);
 
   const userEntry = {
@@ -71,13 +67,11 @@ const storeUserData = (userDirectory) => {
     entityList,
   };
 
-  fs.writeFileSync(disqusDataStoreFilePath, JSON.stringify(userEntry, null, 2));
+  return userEntry;
 };
 
-exports.getUserData = storeUserData;
+exports.formatUserDisqusEntityAnalysis = formatUserDisqusEntityAnalysis;
 
-userDirectories.forEach((userDirectory, index) => {
-  storeUserData(userDirectory);
-});
-
-console.log('Done');
+// const data = fs.readFileSync('/home/saad/entity-analysis/1000_bigyahu/disqus.json');
+// const analysis = JSON.parse(data).analysis;
+// formatUserDisqusEntityAnalysis('1000_bigyahu', analysis);

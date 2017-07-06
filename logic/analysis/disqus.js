@@ -19,6 +19,8 @@ const getDisqusComments = (userId) => {
   }
 };
 
+exports.getDisqusComments = getDisqusComments;
+
 const getCommentTextSetForDisqus = (userId, setSize) => {
   const comments = getDisqusComments(userId);
   let commentTextSet = [];
@@ -81,18 +83,7 @@ const getDisqusAnalysisForUser = (userDirectory, callback) => {
     .catch((err) => {
       callback(err);
     })
-
 };
 
 exports.getDisqusAnalysisForUser = getDisqusAnalysisForUser;
 
-// console.log(`Start: ${new Date()}`);
-// getDisqusAnalysisForUser('/home/saad-galib/media/1000_bigyahu', (err, result) => {
-//   if (err) {
-//     console.log(err);
-//     return;
-//   }
-
-//   console.log(`End: ${new Date()}`);
-//   console.log('Tasks done successfully!');
-// });

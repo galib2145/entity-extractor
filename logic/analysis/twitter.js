@@ -18,6 +18,8 @@ const getTwitterPosts = (userId) => {
   };
 };
 
+exports.getTwitterPosts = getTwitterPosts;
+
 const getPostTextSetTwitter = (userId, setSize) => {
   const posts = getTwitterPosts(userId);
   let postTextSet = [];
@@ -91,13 +93,3 @@ const getTwitterAnalysisForUser = (userDirectory, callback) => {
 
 exports.getTwitterAnalysisForUser = getTwitterAnalysisForUser;
 
-// console.log(`Start: ${new Date()}`);
-// getTwitterAnalysisForUser('/home/saad-galib/media/1000_bigyahu', (err, result) => {
-//   if (err) {
-//     console.log(err);
-//     return;
-//   }
-
-//   console.log(`End: ${new Date()}`);
-//   console.log('Tasks done successfully!');
-// });

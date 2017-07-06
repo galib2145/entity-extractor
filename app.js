@@ -5,11 +5,14 @@ var querystring = require('querystring');
 const async = require('async');
 const mkdirp = Promise.promisifyAll(require('mkdirp'));
 
-const twitterLogic = Promise.promisifyAll(require('./logic/analysis/twitter.js'));
-const disqusLogic = Promise.promisifyAll(require('./logic/analysis/disqus.js'));
+const twitterAnalysisLogic = Promise.promisifyAll(require('./logic/analysis/twitter.js'));
+const disqusAnalysisLogic = Promise.promisifyAll(require('./logic/analysis/disqus.js'));
 
-const rootDirectory = '/home/saad-galib/media';
-const outputDirectory = '/home/saad-galib/entity-analysis-2';
+const twitterPreprocessingLogic = require('./logic/preprocessing/twitter');
+const disqusPreprocessingLogic = require('./logic/preprocessing/disqus');
+
+const rootDirectory = '/home/saad/media';
+const outputDirectory = '/home/saad/entity-analysis-2';
 
 
 const analysisTask = (userDirectory, taskIndex, callback) => {
@@ -25,10 +28,10 @@ const analysisTask = (userDirectory, taskIndex, callback) => {
   console.log(`Start time: ${time}`);
   console.log(`Directory: ${userDirectory}`);
 
-  twitterLogic.getTwitterAnalysisForUserAsync(userDirectory)
+  twitterAnalysisLogic.getTwitterAnalysisForUserAsync(userDirectory)
     .then((result) => {
       twitterAnalysisString = JSON.stringify(result, null, 2);
-      return disqusLogic.getDisqusAnalysisForUserAsync(userDirectory);
+      return disqusAnalysisLogic.getDisqusAnalysisForUserAsync(userDirectory);
     })
     .then((result) => {
       disqusAnalysisString = JSON.stringify(result, null, 2);
@@ -43,6 +46,12 @@ const analysisTask = (userDirectory, taskIndex, callback) => {
       return Promise.all(fileWriteTasks);
     })
     .then(() => {
+      const processedTwitter = twitterPreprocessingLogic.formatUserTwitterEntityAnalysis(userId, JSON.parse(twitterAnalysisString).analysis);
+      const processedDisqus = disqusPreprocessingLogic.formatUserDisqusEntityAnalysis(userId, JSON.parse(disqusAnalysisString).analysis);
+      const fileWriteTasks = [
+        fs.writeFileAsync(`${baseAnalysisDirectory}/twitter-store`, JSON.stringify(processedTwitter, null, 2)),
+        fs.writeFileAsync(`${baseAnalysisDirectory}/disqus-store`, JSON.stringify(processedDisqus, null, 2)),
+      ];
       console.log(`End time: ${new Date()}`);
       callback();
     })
@@ -51,7 +60,7 @@ const analysisTask = (userDirectory, taskIndex, callback) => {
     });
 };
 
-analysisTask('/home/saad-galib/media/1000_bigyahu', 1, (err) => {
+analysisTask('/home/saad/media/1000_bigyahu', 1, (err) => {
   if (err) {
     console.log(err);
     return;

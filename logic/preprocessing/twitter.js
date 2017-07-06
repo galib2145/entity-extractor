@@ -1,13 +1,9 @@
 const fs = require('fs');
-const async = require('async');
-const MongoClient = require('mongodb').MongoClient;
-const ObjectId = require('mongodb').ObjectID;
-const url = 'mongodb://localhost:27017/test';
-const logics = require('./logics');
-const rootDirectory = '/home/saad-galib/media';
-const userDirectories = logics.getDirectories(rootDirectory);
+const path = require('path');
 
-const timeParser = require('./timeParser');
+const config = require('../../config');
+const twitterAnalysisLogic = require('../analysis/twitter');
+const timeParser = require('../parsing/timeParser');
 
 const getExactEntityMentionTimes = (entityText, posts) => {
   const mentionedPosts = posts.filter((post) => post.text.includes(entityText));
@@ -55,42 +51,23 @@ const getProcessedEntityInfoList = (analysisList, posts) => {
   return array;
 };
 
-const storeUserData = (userDirectory) => {
-  const userId = userDirectory.split('/')[4];
-  const analysisFilePath = `/home/saad-galib/entity-analysis/${userId}/twitter.json`;
-  const postsFilePath = `/home/saad-galib/media/${userId}/twitter_timeline.json`;
-  const disqusDataStoreFilePath = `/home/saad-galib/entity-analysis/${userId}/twitter-data-store.json`;
+const formatUserTwitterEntityAnalysis = (userId, analysis) => {
+  const twitterDataStoreFilePath = path.join(
+    process.env.HOME, 
+    config.dir.alchemyAnalysis,
+    `/${userId}`,
+    config.dir.twitterDataStore
+  );
 
-  try {
-    const analysis = JSON.parse((fs.readFileSync(analysisFilePath))).analysis;
-    const posts = JSON.parse((fs.readFileSync(postsFilePath)));
-    const entityList = getProcessedEntityInfoList(analysis, posts);
+  const posts = twitterAnalysisLogic.getTwitterPosts(userId);
+  const entityList = getProcessedEntityInfoList(analysis, posts);
 
-    const userEntry = {
-      username: userId,
-      entityList,
-    };
+  const userEntry = {
+    username: userId,
+    entityList,
+  };
 
-
-    fs.writeFileSync(disqusDataStoreFilePath, JSON.stringify(userEntry, null, 2));
-    return true;
-  } catch (err) {
-    console.log(err.message);
-    return false;
-  }
-
-
+  return userEntry;
 };
 
-exports.getUserData = storeUserData;
-
-let numSuccess = 0;
-userDirectories.forEach((userDirectory, index) => {
-  const done = storeUserData(userDirectory);
-  if (done) {
-    numSuccess += 1;
-  }
-});
-
-console.log('Done');
-console.log(`${numSuccess} had okay twitters`);
+exports.formatUserTwitterEntityAnalysis = formatUserTwitterEntityAnalysis;

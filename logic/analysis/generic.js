@@ -18,7 +18,7 @@ const constructEntityAnalysisEntryList = (textSet, alchemyResponseList) => {
     const alchemyResponse = alchemyResponseList[i];
     if (alchemyResponse.entities) {
       const analysis = {
-        commentText: textSet[i].text,
+        text: textSet[i].text,
         startIndex: textSet[i].startIndex,
         endIndex: textSet[i].endIndex,
         startTime: textSet[i].startTime,
