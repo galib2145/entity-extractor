@@ -23,6 +23,7 @@ exports.getDisqusComments = getDisqusComments;
 
 const getCommentTextSetForDisqus = (userId, setSize) => {
   const comments = getDisqusComments(userId);
+  console.log(`User has ${comments.length} disqus comments`);
   let commentTextSet = [];
   let startIndex = 0;
 
@@ -70,9 +71,12 @@ const getDisqusAnalysisForUser = (userDirectory, callback) => {
   const disqusCommentTextSet = getCommentTextSetForDisqus(userId, 2000);
   const analysisTask = (comment) => networkLogic.getAlchemyAnalysisAsync(comment.text);
 
+  console.log(`Starting analysis for ${disqusCommentTextSet.length} disqus comment chunks`);
+
   Promise.map(disqusCommentTextSet, analysisTask, { concurrency: 4 })
     .then((alchemyResponseList) => {
       const analysis = genericLogic.constructEntityAnalysisEntryList(disqusCommentTextSet, alchemyResponseList);
+      console.log(`${analysis.length} comment chunks has entities`);
       const userDisqusAnalysis = {
         userId,
         analysis,
@@ -86,4 +90,3 @@ const getDisqusAnalysisForUser = (userDirectory, callback) => {
 };
 
 exports.getDisqusAnalysisForUser = getDisqusAnalysisForUser;
-

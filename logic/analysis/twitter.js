@@ -27,6 +27,8 @@ const getPostTextSetTwitter = (userId, setSize) => {
 
   let totalText = '';
 
+  console.log(`User has ${posts.length} twitter posts`);
+
   for (let i = 0; i < posts.length; i++) {
     const post = posts[i];
     const postText = post.text;
@@ -74,10 +76,12 @@ const getTwitterAnalysisForUser = (userDirectory, callback) => {
   }
 
   const analysisTask = (post) => networkLogic.getAlchemyAnalysisAsync(post.text);
+  console.log(`Starting analysis for ${postTextSet.length} twitter post chunks`);
 
   Promise.map(postTextSet, analysisTask, { concurrency: 4 })
     .then((alchemyResponseList) => {
       const analysis = genericLogic.constructEntityAnalysisEntryList(postTextSet, alchemyResponseList);
+      console.log(`${analysis.length} post chunks has entities`);
       const userId = userDirectory.split('/')[4];
       const userTwitterAnalysis = {
         userId,
@@ -92,4 +96,3 @@ const getTwitterAnalysisForUser = (userDirectory, callback) => {
 };
 
 exports.getTwitterAnalysisForUser = getTwitterAnalysisForUser;
-

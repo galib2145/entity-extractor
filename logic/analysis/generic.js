@@ -1,6 +1,9 @@
+const disqusAnalysisLogic = require('./disqus');
+const twitterAnalysisLogic = require('../analysis/twitter');
+
 const shouldUserBeAnalyzed = (userId) => {
-  const twitterPosts = getTwitterPosts(userId);
-  const disqusComments = getDisqusComments(userId);
+  const twitterPosts = twitterAnalysisLogic.getTwitterPosts(userId);
+  const disqusComments = disqusAnalysisLogic.getDisqusComments(userId);
 
   if (twitterPosts.length > 100 && disqusComments.length > 50) {
     return true;
