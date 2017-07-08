@@ -90,7 +90,6 @@ prompt.get(['startIndex', 'endIndex'], function(err, result) {
   console.log(`End user index: ${endIndex}`);
 
   const userDirectories = fileLogic.getDirectories(rootProfileDataDirectory);
-
   async.forEachOfSeries(userDirectories.slice(startIndex, endIndex + 1), analysisTask, (err) => {
     if (err) {
       console.log(err.message);

@@ -1,6 +1,7 @@
 const path = require('path');
 const Promise = require('bluebird');
 const fs = Promise.promisifyAll(require('fs'));
+const _ = require('lodash');
 
 const networkLogic = Promise.promisifyAll(require('../network'));
 const genericLogic = Promise.promisifyAll(require('./generic'));
