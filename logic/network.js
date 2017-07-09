@@ -25,7 +25,10 @@ const getAlchemyAnalysis = (text, callback) => {
 
   request(options, (err, response, body) => {
     if (err) {
-      if (err.message.includes('ETIMEDOUT') || err.message.includes('socket hang up') || err.message.includes('ESOCKETTIMEDOUT')) {
+      if (err.message.includes('ETIMEDOUT') ||
+        err.message.includes('socket hang up') ||
+        err.message.includes('ESOCKETTIMEDOUT') ||
+        err.message.includes('ENOTFOUND')) {
         setTimeout(() => {
           getAlchemyAnalysis(text, callback);
         }, 5 * 60 * 1000);

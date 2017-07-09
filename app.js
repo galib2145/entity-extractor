@@ -71,6 +71,8 @@ const analysisTask = (userDirectory, taskIndex, callback) => {
       callback();
     })
     .catch((err) => {
+      console.log(err);
+      console.log(`Analysis failed for user : ${userId}`);
       const error = {
         userId,
         error: err,

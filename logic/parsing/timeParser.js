@@ -18,7 +18,8 @@ const getHour = (timeStr) => {
 const parseTwitterTimeSting = (timeStr) => {
   const parts = timeStr.split(' ');
   const time = {
-    day: getDayFromString(parts[0]),
+    dayOfWeek: getDayFromString(parts[0]),
+    day: parseInt(parts[2], 10),
     month: getMonthFromString(parts[1]),
     hour: getHour(parts[3]),
     year: parts[5],
@@ -35,9 +36,10 @@ const parseDisqusTimeString = (timeStr) => {
     const dateStr = parts[0];
     const date = moment(dateStr);
     const time = {
+      day: parseInt(dateStr.split('-')[2], 10),
       year: dateStr.split('-')[0],
       month: dateStr.split('-')[1],
-      day: date.day(),
+      dayOfWeek: date.day(),
       hour: getHour(parts[1]),
     }
 
