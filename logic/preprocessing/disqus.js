@@ -23,7 +23,7 @@ const getProcessedEntityInfoList = (analysisList, comments) => {
 
     for (let j = 0; j < entityInfoList.length; j += 1) {
       const entityInfo = entityInfoList[j];
-      const entityText = entityInfo.text;
+      const entityText = entityInfo.text.toLowerCase();
       const mentionTimesStrings = getExactEntityMentionTimes(entityText, commentsToSearch);
       const mentionTimes = mentionTimesStrings.map((timeStr) => timeParser.parseTimeString(timeStr));
 
@@ -53,12 +53,12 @@ const getProcessedEntityInfoList = (analysisList, comments) => {
 
 const formatUserDisqusEntityAnalysis = (userId, analysis) => {
   const disqusDataStoreFilePath = path.join(
-    process.env.HOME, 
+    process.env.HOME,
     config.dir.alchemyAnalysis,
     `/${userId}`,
     config.dir.disqusDataStore
   );
-  
+
   const comments = disqusAnalysisLogic.getDisqusComments(userId);
   const entityList = getProcessedEntityInfoList(analysis, comments);
 
