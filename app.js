@@ -21,6 +21,8 @@ const disqusPreprocessingLogic = require('./logic/preprocessing/disqus');
 const rootProfileDataDirectory = path.join(process.env.HOME, config.dir.profileData);
 const outputDirectory = path.join(process.env.HOME, 'entity-analysis-2');
 
+const errorReport = [];
+
 const analysisTask = (userDirectory, taskIndex, callback) => {
   const userId = userDirectory.split('/')[4];
 
@@ -69,17 +71,15 @@ const analysisTask = (userDirectory, taskIndex, callback) => {
       callback();
     })
     .catch((err) => {
-      callback(err);
+      const error = {
+        userId,
+        error: err,
+      };
+
+      errorReport.push(error);
+      callback();
     });
 };
-
-// analysisTask('/home/saad-galib/media/1000_bigyahu', 1, (err) => {
-//   if (err) {
-//     console.log(err);
-//     return;
-//   }
-//   console.log('Task finished');
-// });
 
 prompt.get(['startIndex', 'endIndex'], function(err, result) {
   const startIndex = parseInt(result.startIndex, 10);
@@ -95,6 +95,8 @@ prompt.get(['startIndex', 'endIndex'], function(err, result) {
       return;
     }
 
+    const errorReportStr = JSON.stringify(errorReport, null, 2);
+    fs.writeFileSync(`${outputDirectory}/error-report.json`, errorReportStr);
     console.log('Tasks executed successfully');
   });
 
