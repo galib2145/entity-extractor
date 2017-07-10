@@ -49,7 +49,7 @@ exports.constructEntityAnalysisEntryList = constructEntityAnalysisEntryList;
 
 const getEntitiesForUser = (userId, media, callback) => {
   const baseDataStoreFilePath = path.join(
-    process.env.HOME, 
+    process.env.HOME,
     config.dir.alchemyAnalysis,
     `/${userId}`
   );
@@ -62,7 +62,7 @@ const getEntitiesForUser = (userId, media, callback) => {
   if (media === 'disqus') {
     mediaDataFilePath = path.join(baseDataStoreFilePath, 'disqus-store');
   }
-  
+
   fs.readFileAsync(mediaDataFilePath)
     .then((fileData) => {
       const entityData = JSON.parse(fileData).entityList;
@@ -80,13 +80,13 @@ exports.getEntitiesForUser = getEntitiesForUser;
 const getCosineSimilarity = (u1Entities, u2Entities) => {
   const entityUnion = u1Entities.concat(u2Entities);
   const featureSet = _.uniqBy(entityUnion, (e) => e);
-  
+
   const u1Vector = featureSet.map((feature) => {
     if (u1Entities.includes(feature)) {
       return 1;
     }
 
-    return 0; 
+    return 0;
   });
 
   const u2Vector = featureSet.map((feature) => {
@@ -94,22 +94,8 @@ const getCosineSimilarity = (u1Entities, u2Entities) => {
       return 1;
     }
 
-    return 0; 
+    return 0;
   });
 
   return cosineSim(u1Vector, u2Vector);
 };
-
-const getEntitiesForUserAsync = Promise.promisify(getEntitiesForUser);
-let entitySetOne = null;
-
-getEntitiesForUserAsync('1000_bigyahu', 'twitter')
-  .then((twitterEntities) => {
-    entitySetOne = twitterEntities;
-    return getEntitiesForUserAsync('1000_bigyahu', 'disqus');
-  })
-  .then((disqusEntities) => {
-    const sim = getCosineSimilarity(entitySetOne, disqusEntities);
-    console.log(sim);
-  })
-  .catch(err => console.log(err));

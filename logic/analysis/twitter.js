@@ -13,9 +13,7 @@ const getTwitterPosts = (userId) => {
     const fileContent = fs.readFileSync(twitterDataFilePath).toString();
     return JSON.parse(fileContent)
   } catch (err) {
-    if (err.code === 'ENOENT') {
-      return [];
-    }
+    throw err;
   };
 };
 
