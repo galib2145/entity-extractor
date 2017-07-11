@@ -47,7 +47,7 @@ const constructEntityAnalysisEntryList = (textSet, alchemyResponseList) => {
 
 exports.constructEntityAnalysisEntryList = constructEntityAnalysisEntryList;
 
-const getEntitiesForUser = (userId, media, callback) => {
+const getEntityDataForUser = (userId, media, callback) => {
   const baseDataStoreFilePath = path.join(
     process.env.HOME,
     config.dir.alchemyAnalysis,
@@ -64,8 +64,18 @@ const getEntitiesForUser = (userId, media, callback) => {
   }
 
   fs.readFileAsync(mediaDataFilePath)
-    .then((fileData) => {
-      const entityData = JSON.parse(fileData).entityList;
+    .then((result) => {
+      callback(null, JSON.parse(result).entityList);
+    })
+    .catch(err => callback(err));
+};
+
+exports.getEntityDataForUser = getEntityDataForUser;
+
+const getEntitiesForUser = (userId, media, callback) => {
+  const getEntityDataForUserAsync = Promise.promisify(getEntityDataForUser);
+  getEntityDataForUserAsync(userId, media)
+    .then((entityData) => {
       const entities = entityData.map((data) => data.entity);
       const uniqueEntities = _.uniqBy(entities, (e) => e);
       callback(null, uniqueEntities);

@@ -6,7 +6,7 @@ const disqusAnalysisLogic = require('../analysis/disqus');
 const timeParser = require('../parsing/timeParser');
 
 const getExactEntityMentionTimes = (entityText, comments) => {
-  const mentionedPosts = comments.filter((comment) => comment.post.includes(entityText));
+  const mentionedPosts = comments.filter((comment) => comment.post.toLowerCase().includes(entityText));
   const mentionTimes = mentionedPosts.map((post) => post.time);
   return mentionTimes.filter((elem, index, self) => {
     return index == self.indexOf(elem);
@@ -72,6 +72,6 @@ const formatUserDisqusEntityAnalysis = (userId, analysis) => {
 
 exports.formatUserDisqusEntityAnalysis = formatUserDisqusEntityAnalysis;
 
-// const data = fs.readFileSync('/home/saad/entity-analysis/1000_bigyahu/disqus.json');
-// const analysis = JSON.parse(data).analysis;
-// formatUserDisqusEntityAnalysis('1000_bigyahu', analysis);
+const data = fs.readFileSync('/home/saad-galib/entity-analysis-2/1000_bigyahu/disqus.json');
+const analysis = JSON.parse(data).analysis;
+formatUserDisqusEntityAnalysis('1000_bigyahu', analysis);

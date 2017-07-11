@@ -50,48 +50,6 @@ const addDay = (startDate, windowSize) => {
 
 exports.addDay = addDay;
 
-
-const getEntitiesForUserForTimeRange = (userId, media, startTime, endTime) => {
-  const baseDataStoreFilePath = path.join(
-    process.env.HOME,
-    config.dir.alchemyAnalysis,
-    `/${userId}`
-  );
-
-  let mediaDataFilePath = baseDataStoreFilePath;
-  if (media === 'twitter') {
-    mediaDataFilePath = path.join(baseDataStoreFilePath, 'twitter-store');
-  }
-
-  if (media === 'disqus') {
-    mediaDataFilePath = path.join(baseDataStoreFilePath, 'disqus-store');
-  }
-
-  const fileData = fs.readFileSync(mediaDataFilePath)
-  const entityData = JSON.parse(fileData).entityList;
-  const entityDataWithinTimeRange = entityData.map((data) => {
-    const mentionTimes = data.mentionTimes;
-    const mentionTimesInRange = mentionTimes.filter((time) => {
-      if (compareTime(time, startTime) >= 0 && compareTime(endTime, time) >= 0) {
-        return true;
-      }
-
-      return false;
-    });
-
-    if (mentionTimesInRange.length > 0) {
-      return {
-        entity: data.entity,
-        postCount: mentionTimesInRange.length,
-      };
-    }
-
-    return null;
-  });
-
-  return entityDataWithinTimeRange.filter((e) => e);
-};
-
 const compareProfiles = (twitterUserId, disqusUserId) => {
   const twitterStartTime = getEarliestTwitterTime(twitterUserId);
   const disqusStartTime = getEarliestDisqusTime(disqusUserId);
@@ -106,18 +64,3 @@ const compareProfiles = (twitterUserId, disqusUserId) => {
 
   // start processing window size here
 };
-
-
-const data = getEntitiesForUserForTimeRange('1000_bigyahu', 'disqus', {
-  "year": "2016",
-  "month": "06",
-  "day": 1,
-  "hour": 22
-}, {
-  "year": "2016",
-  "month": "06",
-  "day": 1,
-  "hour": 22
-});
-
-console.log(JSON.stringify(data, null, 2));

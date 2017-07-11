@@ -22,7 +22,7 @@ const parseTwitterTimeSting = (timeStr) => {
     day: parseInt(parts[2], 10),
     month: getMonthFromString(parts[1]),
     hour: getHour(parts[3]),
-    year: parts[5],
+    year: parseInt(parts[5], 10),
   }
 
   return time;
@@ -37,8 +37,8 @@ const parseDisqusTimeString = (timeStr) => {
     const date = moment(dateStr);
     const time = {
       day: parseInt(dateStr.split('-')[2], 10),
-      year: dateStr.split('-')[0],
-      month: dateStr.split('-')[1],
+      year: parseInt(dateStr.split('-')[0], 10),
+      month: parseInt(dateStr.split('-')[1], 10),
       dayOfWeek: date.day(),
       hour: getHour(parts[1]),
     }

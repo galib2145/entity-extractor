@@ -6,7 +6,7 @@ const twitterAnalysisLogic = require('../analysis/twitter');
 const timeParser = require('../parsing/timeParser');
 
 const getExactEntityMentionTimes = (entityText, posts) => {
-  const mentionedPosts = posts.filter((post) => post.text.includes(entityText));
+  const mentionedPosts = posts.filter((post) => post.text.toLowerCase().includes(entityText));
   const mentionTimes = mentionedPosts.map((post) => post.time);
   return mentionTimes.filter((elem, index, self) => {
     return index == self.indexOf(elem);
@@ -23,7 +23,7 @@ const getProcessedEntityInfoList = (analysisList, posts) => {
 
     for (let j = 0; j < entityInfoList.length; j += 1) {
       const entityInfo = entityInfoList[j];
-      const entityText = entityInfo.text.replace(/$|\./gi, '');
+      const entityText = entityInfo.text.toLowerCase();
       const mentionTimesStrings = getExactEntityMentionTimes(entityText, commentsToSearch);
       const mentionTimes = mentionTimesStrings.map((timeStr) => timeParser.parseTimeString(timeStr));
 
@@ -53,7 +53,7 @@ const getProcessedEntityInfoList = (analysisList, posts) => {
 
 const formatUserTwitterEntityAnalysis = (userId, analysis) => {
   const twitterDataStoreFilePath = path.join(
-    process.env.HOME, 
+    process.env.HOME,
     config.dir.alchemyAnalysis,
     `/${userId}`,
     config.dir.twitterDataStore
