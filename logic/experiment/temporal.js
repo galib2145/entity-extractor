@@ -3,6 +3,7 @@ const Promise = require('bluebird');
 const fs = Promise.promisifyAll(require('fs'));
 
 const twitterLogic = require('../analysis/twitter');
+const dbLogic = require('../db.js');
 const disqusLogic = require('../analysis/disqus');
 const timeParser = require('../parsing/timeParser');
 
@@ -63,4 +64,9 @@ const compareProfiles = (twitterUserId, disqusUserId) => {
   }
 
   // start processing window size here
+};
+
+const calculateEntitySimilarityOnTimeRange = (twitterUserId, disqusUserId, startTime, endTime, callback) => {
+  const startDate = new Date(startTime.year, startTime.month, startTime.day);
+  const endDate = new Date(endTime.year, endTime.month, endTime.day);
 };

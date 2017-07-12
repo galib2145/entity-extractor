@@ -41,6 +41,8 @@ const getMentionsFromEntityData = (userId, entityData) => {
         entity: entity.entity,
         userId,
         date: new Date(mentionTime.year, mentionTime.month, mentionTime.day),
+        sentiment: entity.sentiments[j],
+        emotion: entity.emotions[j],
       };
       entityMentions.push(userMention);
     }
@@ -98,6 +100,8 @@ const getUserMentionsFromDb = (db, userId, media, startDate, endDate, callback) 
     .catch(err => callback(err));
 };
 
+exports.getUserMentionsFromDb = getUserMentionsFromDb;
+
 const url = 'mongodb://localhost:27017/temporal_analysis_db';
 MongoClient.connect(url, {
   connectTimeoutMS: 100000,
@@ -106,6 +110,15 @@ MongoClient.connect(url, {
     console.log(err);
     return;
   }
+
+  // saveUserEntityMentions(db, '1000_bigyahu', 'disqus', (err, result) => {
+  //   if (err) {
+  //     console.log(err);
+  //     return;
+  //   }
+
+  //   console.log(JSON.stringify(result, null, 2));
+  // });
 
   getUserMentionsFromDb(db, '1000_bigyahu', 'disqus', new Date(2009, 1, 5), new Date(2016, 6, 6), (err, result) => {
     if (err) {
@@ -117,11 +130,4 @@ MongoClient.connect(url, {
   });
 });
 
-// saveUserEntityMentions(db, '1000_bigyahu', 'disqus', (err, result) => {
-//   if (err) {
-//     console.log(err);
-//     return;
-//   }
-
-//   console.log(JSON.stringify(result, null, 2));
-// });
+  
