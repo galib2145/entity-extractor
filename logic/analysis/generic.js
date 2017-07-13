@@ -11,8 +11,8 @@ const twitterAnalysisLogic = require('../analysis/twitter');
 const fileLogic = require('../file');
 
 const shouldUserBeAnalyzed = (userId) => {
-  const twitterPosts = twitterAnalysisLogic.getTwitterPosts(userId);
-  const disqusComments = disqusAnalysisLogic.getDisqusComments(userId);
+  const twitterPosts = twitterAnalysisLogic.getTwitterPostsSync(userId);
+  const disqusComments = disqusAnalysisLogic.getDisqusCommentsSync(userId);
 
   if (twitterPosts.length > 100 && disqusComments.length > 50) {
     return true;

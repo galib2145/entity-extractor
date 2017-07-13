@@ -3,8 +3,13 @@ const Promise = require('bluebird');
 const path = require('path');
 
 const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
+const instance = null;
 
 const genericLogic = Promise.promisifyAll(require('./analysis/generic'));
+const twitterAnalysisLogic = Promise.promisifyAll(require('./analysis/twitter'));
+const disqusAnalysisLogic = Promise.promisifyAll(require('./analysis/disqus'));
+
+const timeParser = require('./parsing/timeParser');
 
 const saveData = (db, collectionName, data, callback) => {
   const collection = db.collection(collectionName);
@@ -17,6 +22,20 @@ const saveData = (db, collectionName, data, callback) => {
     callback(null, results);
   });
 };
+
+const getData = (db, collectionName, query, callback) => {
+  db.collection(collectionName, (err, collection) => {
+    collection.find(query).toArray((error, resultSet) => {
+      if (error) {
+        callback(error);
+        return;
+      }
+
+      callback(null, resultSet);
+    });
+  });
+};
+
 
 const getAggregateData = (db, collectionName, query, callback) => {
   db.collection(collectionName, (err, collection) => {
@@ -64,6 +83,53 @@ const saveUserEntityMentions = (db, userId, media, callback) => {
     .catch(() => callback(err));
 };
 
+const saveUserPosts = (db, userId, media, callback) => {
+  const saveDataAsync = Promise.promisify(saveData);
+  let posts = null;
+  let postFetchTask = null;
+
+  (media === 'disqus' ?
+    disqusAnalysisLogic.getDisqusCommentsAsync(userId) :
+    twitterAnalysisLogic.getTwitterPostsAsync(userId))
+  .then((posts) => {
+      const formattedPosts = posts.map((post) => {
+        const time = post.time;
+        const intrTime = timeParser.parseTimeString(time);
+        const postDate = new Date(intrTime.year, intrTime.month, intrTime.day);
+        post.date = postDate;
+        post.userId = userId;
+        return post;
+      });
+      return saveDataAsync(db, `${media}Posts`, formattedPosts);
+    })
+    .then((result) => {
+      callback(null, result);
+    })
+    .catch((err) => callback(err));
+};
+
+const getUserPostsFromDb = (db, userId, media, startDate, endDate, callback) => {
+  const getDataAsync = Promise.promisify(getData);
+  const query = {
+    userId,
+    date: {
+      $gte: startDate,
+      $lte: endDate,
+    },
+  };
+
+
+  const collectionName = `${media}Posts`;
+  getDataAsync(db, collectionName, query)
+    .then((posts) => {
+      callback(null, posts);
+    })
+    .catch(err => callback(err));
+};
+
+
+exports.getUserPostsFromDb = getUserPostsFromDb;
+
 const getUserMentionsFromDb = (db, userId, media, startDate, endDate, callback) => {
   const getAggregateDataAsync = Promise.promisify(getAggregateData);
   const query = [
@@ -102,32 +168,16 @@ const getUserMentionsFromDb = (db, userId, media, startDate, endDate, callback) 
 
 exports.getUserMentionsFromDb = getUserMentionsFromDb;
 
-const url = 'mongodb://localhost:27017/temporal_analysis_db';
-MongoClient.connect(url, {
-  connectTimeoutMS: 100000,
-}, (err, db) => {
-  if (err) {
-    console.log(err);
-    return;
-  }
-
-  // saveUserEntityMentions(db, '1000_bigyahu', 'disqus', (err, result) => {
-  //   if (err) {
-  //     console.log(err);
-  //     return;
-  //   }
-
-  //   console.log(JSON.stringify(result, null, 2));
-  // });
-
-  getUserMentionsFromDb(db, '1000_bigyahu', 'disqus', new Date(2009, 1, 5), new Date(2016, 6, 6), (err, result) => {
+exports.getDB = (callback) => {
+  const url = 'mongodb://localhost:27017/temporal_analysis_db';
+  MongoClient.connect(url, {
+    connectTimeoutMS: 100000,
+  }, (err, db) => {
     if (err) {
-      console.log(err);
+      callback(err);
       return;
     }
 
-    console.log(JSON.stringify(result, null, 2));
+    callback(null, db);
   });
-});
-
-  
+};

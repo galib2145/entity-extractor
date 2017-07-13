@@ -5,7 +5,7 @@ const fs = Promise.promisifyAll(require('fs'));
 const networkLogic = Promise.promisifyAll(require('../network'));
 const genericLogic = Promise.promisifyAll(require('./generic'));
 
-const getDisqusComments = (userId) => {
+const getDisqusCommentsSync = (userId) => {
   const userDirectory = `/media/${userId}/disqus_comments.json`;
   const disqusDataFilePath = path.join(process.env.HOME, userDirectory);
   try {
@@ -19,10 +19,23 @@ const getDisqusComments = (userId) => {
   }
 };
 
+exports.getDisqusCommentsSync = getDisqusCommentsSync;
+
+const getDisqusComments = (userId, callback) => {
+  const userDirectory = `/media/${userId}/disqus_comments.json`;
+  const disqusDataFilePath = path.join(process.env.HOME, userDirectory);
+  fs.readFileAsync(disqusDataFilePath)
+    .then((fileContent) => {
+      const comments = JSON.parse(fileContent).comments;
+      callback(null, comments);
+    })
+    .catch((err) => callback(err));
+};
+
 exports.getDisqusComments = getDisqusComments;
 
 const getCommentTextSetForDisqus = (userId, setSize) => {
-  const comments = getDisqusComments(userId);
+  const comments = getDisqusCommentsSync(userId);
   console.log(`User has ${comments.length} disqus comments`);
   let commentTextSet = [];
   let startIndex = 0;

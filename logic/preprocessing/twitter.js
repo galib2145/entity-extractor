@@ -13,7 +13,7 @@ const formatUserTwitterEntityAnalysis = (userId, analysis) => {
     config.dir.twitterDataStore
   );
 
-  const posts = twitterAnalysisLogic.getTwitterPosts(userId);
+  const posts = twitterAnalysisLogic.getTwitterPostsSync(userId);
   const entityList = generic.getProcessedEntityInfoList(analysis, 'twitter', posts);
 
   const userEntry = {

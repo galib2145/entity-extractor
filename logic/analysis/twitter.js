@@ -6,21 +6,34 @@ const _ = require('lodash');
 const networkLogic = Promise.promisifyAll(require('../network'));
 const genericLogic = Promise.promisifyAll(require('./generic'));
 
-const getTwitterPosts = (userId) => {
+const getTwitterPostsSync = (userId) => {
   const userDirectory = `/media/${userId}/twitter_timeline.json`;
   const twitterDataFilePath = path.join(process.env.HOME, userDirectory);
   try {
     const fileContent = fs.readFileSync(twitterDataFilePath).toString();
-    return JSON.parse(fileContent)
+    return JSON.parse(fileContent);
   } catch (err) {
     throw err;
   };
 };
 
-exports.getTwitterPosts = getTwitterPosts;
+exports.getTwitterPostsSync = getTwitterPostsSync;
+
+const getTwitterPosts = (userId, callback) => {
+  const userDirectory = `/media/${userId}/twitter_timeline.json`;
+  const twitterDataFilePath = path.join(process.env.HOME, userDirectory);
+  fs.readFileAsync(twitterDataFilePath)
+    .then((fileContent) => {
+      const posts = JSON.parse(fileContent);
+      callback(null, posts);
+    })
+    .catch((err) => callback(err));
+};
+
+exports.getTwitterPosts = exports.getTwitterPosts;
 
 const getPostTextSetTwitter = (userId, setSize) => {
-  const posts = getTwitterPosts(userId);
+  const posts = getTwitterPostsSync(userId);
   let postTextSet = [];
   let startIndex = 0;
 

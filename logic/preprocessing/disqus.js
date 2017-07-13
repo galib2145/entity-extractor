@@ -14,7 +14,7 @@ const formatUserDisqusEntityAnalysis = (userId, analysis) => {
     config.dir.disqusDataStore
   );
 
-  const comments = disqusAnalysisLogic.getDisqusComments(userId);
+  const comments = disqusAnalysisLogic.getDisqusCommentsSync(userId);
   const entityList = generic.getProcessedEntityInfoList(analysis, 'disqus', comments);
 
   const userEntry = {
@@ -26,5 +26,3 @@ const formatUserDisqusEntityAnalysis = (userId, analysis) => {
 };
 
 exports.formatUserDisqusEntityAnalysis = formatUserDisqusEntityAnalysis;
-
-
