@@ -11,41 +11,84 @@ const disqusAnalysisLogic = Promise.promisifyAll(require('./analysis/disqus'));
 
 const timeParser = require('./parsing/timeParser');
 
-const saveData = (db, collectionName, data, callback) => {
-  const collection = db.collection(collectionName);
-  collection.insertMany(data, (err, results) => {
+const db = null;
+
+const getDB = (callback) => {
+  if (db) {
+    callback(null, db);
+    return;
+  }
+
+  const url = 'mongodb://localhost:27017/temporal_analysis_db';
+  MongoClient.connect(url, {
+    connectTimeoutMS: 100000,
+  }, (err, db) => {
     if (err) {
       callback(err);
       return;
     }
 
-    callback(null, results);
+    callback(null, db);
   });
 };
 
-const getData = (db, collectionName, query, callback) => {
-  db.collection(collectionName, (err, collection) => {
-    collection.find(query).toArray((error, resultSet) => {
-      if (error) {
-        callback(error);
+exports.getDB = getDB;
+
+const saveData = (collectionName, data, callback) => {
+  getDB((err, db) => {
+    if (err) {
+      callback(err);
+      return;
+    }
+    const collection = db.collection(collectionName);
+    collection.insertMany(data, (err, results) => {
+      if (err) {
+        callback(err);
         return;
       }
 
-      callback(null, resultSet);
+      callback(null, results);
+    });
+  });
+};
+
+const getData = (collectionName, query, callback) => {
+  getDB((err, db) => {
+    if (err) {
+      callback(err);
+      return;
+    }
+
+    db.collection(collectionName, (err, collection) => {
+      collection.find(query).toArray((error, resultSet) => {
+        if (error) {
+          callback(error);
+          return;
+        }
+
+        callback(null, resultSet);
+      });
     });
   });
 };
 
 
-const getAggregateData = (db, collectionName, query, callback) => {
-  db.collection(collectionName, (err, collection) => {
-    collection.aggregate(query).toArray((error, resultSet) => {
-      if (error) {
-        callback(error);
-        return;
-      }
+const getAggregateData = (collectionName, query, callback) => {
+  getDB((err, db) => {
+    if (err) {
+      callback(err);
+      return;
+    }
 
-      callback(null, resultSet);
+    db.collection(collectionName, (err, collection) => {
+      collection.aggregate(query).toArray((error, resultSet) => {
+        if (error) {
+          callback(error);
+          return;
+        }
+
+        callback(null, resultSet);
+      });
     });
   });
 };
@@ -70,20 +113,22 @@ const getMentionsFromEntityData = (userId, entityData) => {
   return entityMentions;
 };
 
-const saveUserEntityMentions = (db, userId, media, callback) => {
+const saveUserEntityMentions = (userId, media, callback) => {
   const saveDataAsync = Promise.promisify(saveData);
   genericLogic.getEntityDataForUserAsync(userId, media)
     .then((entityData) => {
       const entityMentions = getMentionsFromEntityData(userId, entityData);
-      return saveDataAsync(db, `${media}EntityMentions`, entityMentions);
+      return saveDataAsync(`${media}EntityMentions`, entityMentions);
     })
     .then((result) => {
       callback(null, result);
     })
-    .catch(() => callback(err));
+    .catch((err) => callback(err));
 };
 
-const saveUserPosts = (db, userId, media, callback) => {
+exports.saveUserEntityMentions = saveUserEntityMentions;
+
+const saveUserPosts = (userId, media, callback) => {
   const saveDataAsync = Promise.promisify(saveData);
   let posts = null;
   let postFetchTask = null;
@@ -100,7 +145,7 @@ const saveUserPosts = (db, userId, media, callback) => {
         post.userId = userId;
         return post;
       });
-      return saveDataAsync(db, `${media}Posts`, formattedPosts);
+      return saveDataAsync(`${media}Posts`, formattedPosts);
     })
     .then((result) => {
       callback(null, result);
@@ -108,7 +153,9 @@ const saveUserPosts = (db, userId, media, callback) => {
     .catch((err) => callback(err));
 };
 
-const getUserPostsFromDb = (db, userId, media, startDate, endDate, callback) => {
+exports.saveUserPosts = saveUserPosts;
+
+const getUserPostsFromDb = (userId, media, startDate, endDate, callback) => {
   const getDataAsync = Promise.promisify(getData);
   const query = {
     userId,
@@ -120,7 +167,7 @@ const getUserPostsFromDb = (db, userId, media, startDate, endDate, callback) => 
 
 
   const collectionName = `${media}Posts`;
-  getDataAsync(db, collectionName, query)
+  getDataAsync(collectionName, query)
     .then((posts) => {
       callback(null, posts);
     })
@@ -130,7 +177,7 @@ const getUserPostsFromDb = (db, userId, media, startDate, endDate, callback) => 
 
 exports.getUserPostsFromDb = getUserPostsFromDb;
 
-const getUserMentionsFromDb = (db, userId, media, startDate, endDate, callback) => {
+const getUserMentionsFromDb = (userId, media, startDate, endDate, callback) => {
   const getAggregateDataAsync = Promise.promisify(getAggregateData);
   const query = [
     {
@@ -152,7 +199,7 @@ const getUserMentionsFromDb = (db, userId, media, startDate, endDate, callback) 
 
 
   const collectionName = `${media}EntityMentions`;
-  getAggregateDataAsync(db, collectionName, query)
+  getAggregateDataAsync(collectionName, query)
     .then((entityData) => {
       const entityMap = entityData.map((x) => {
         return {
@@ -168,16 +215,28 @@ const getUserMentionsFromDb = (db, userId, media, startDate, endDate, callback) 
 
 exports.getUserMentionsFromDb = getUserMentionsFromDb;
 
-exports.getDB = (callback) => {
-  const url = 'mongodb://localhost:27017/temporal_analysis_db';
-  MongoClient.connect(url, {
-    connectTimeoutMS: 100000,
-  }, (err, db) => {
-    if (err) {
-      callback(err);
-      return;
-    }
+const saveUserDataInDB = (userId, callback) => {
+  const saveUserPostsAsync = Promise.promisify(saveUserPosts);
+  const saveUserEntityMentionsAsync = Promise.promisify(saveUserEntityMentions);
+  const dataSavingTasks = [
+        saveUserPostsAsync(userId, 'disqus'),
+        saveUserPostsAsync(userId, 'twitter'),
+        saveUserEntityMentionsAsync(userId, 'disqus'),
+        saveUserEntityMentionsAsync(userId, 'twitter'),
+      ];
 
-    callback(null, db);
-  });
+  Promise.all(dataSavingTasks)
+    .then(() => callback())
+    .catch((err) => {
+      callback(err);
+    })
 };
+
+saveUserDataInDB('1000_bigyahu', (err) => {
+  if (err) {
+    console.log(err);
+  }
+
+  console.log('Done');
+})
+

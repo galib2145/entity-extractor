@@ -30,7 +30,7 @@ const getTwitterPosts = (userId, callback) => {
     .catch((err) => callback(err));
 };
 
-exports.getTwitterPosts = exports.getTwitterPosts;
+exports.getTwitterPosts = getTwitterPosts;
 
 const getPostTextSetTwitter = (userId, setSize) => {
   const posts = getTwitterPostsSync(userId);

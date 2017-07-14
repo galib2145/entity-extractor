@@ -9,7 +9,6 @@ const disqusPreprocessingLogic = require('./disqus');
 const config = require('../../config');
 const fileLogic = require('../../logic/file');
 const timeParser = require('../parsing/timeParser');
-const analysisDirectory = path.join(process.env.HOME, config.dir.alchemyAnalysis);
 
 const getExactEntityMentionTimes = (entityText, media, comments) => {
   let mentionedPosts = null;
@@ -101,26 +100,3 @@ const preprocessUserEntityData = (userId, callback) => {
 };
 
 exports.preprocessUserEntityData = preprocessUserEntityData;
-
-const preprocessingTask = (userDirectory, taskIndex, callback) => {
-  const userId = userDirectory.split('/')[4];
-  preprocessUserEntityData(userId, (err) => {
-    if (err) {
-      console.log(err.message);
-      callback();
-      return;
-    }
-
-    callback();
-  })
-};
-
-const userDirectories = fileLogic.getDirectories(analysisDirectory);
-async.forEachOfSeries(userDirectories, preprocessingTask, (err) => {
-  if (err) {
-    console.log(err.message);
-    return;
-  }
-  
-  console.log('Tasks executed successfully');
-});

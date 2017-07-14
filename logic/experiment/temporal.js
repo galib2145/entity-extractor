@@ -6,6 +6,7 @@ const twitterLogic = require('../analysis/twitter');
 const dbLogic = Promise.promisifyAll(require('../db.js'));
 const disqusLogic = require('../analysis/disqus');
 const timeParser = require('../parsing/timeParser');
+const mathLogic = require('../math');
 
 const config = require('../../config');
 
@@ -115,11 +116,11 @@ const calculateEntitySimilarityOnTimeRange = (twitterUserId, disqusUserId, start
       const entityIntersection = getEntityMentionIntersection(disqusMentions, twitterMentions);
       const disqusUEPList = entityIntersection.map((entry) => entry.disqusMentionCount / numDisqusPosts);
       const twitterUEPList = entityIntersection.map((entry) => entry.twitterMentionCount / numTwitterPosts);
-
-      // find dot product of two arrays here
+      const sim = mathLogic.getDotProduct(disqusUEPList, twitterUEPList);
+      callback(null, sim);
     })
     .catch(err => {
-      console.log(err);
+      callback(err);
     });
 
 };
