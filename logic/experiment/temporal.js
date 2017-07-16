@@ -38,23 +38,35 @@ const compareTime = (t1, t2) => {
   return t1.day - t2.day;
 };
 
-const getEarliestTwitterTime = (userId) => {
-  const twitterPosts = twitterLogic.getTwitterPostsSync(userId);
-  const postTimes = twitterPosts.map(post => timeParser.parse(post.time));
-  const postTimesSorted = postTimes.sort(compareTime);
-  return postTimesSorted[0];
+const getTwitterTimeRange = (userId, callback) => {
+  twitterLogic.getTwitterPostsAsync(userId)
+    .then((twitterPosts) => {
+      const postTimes = twitterPosts.map(post => timeParser.parseTimeString(post.time));
+      const postTimesSorted = postTimes.sort(compareTime);
+      const timeInfo = {
+        start: postTimesSorted[0],
+        end: postTimesSorted[postTimesSorted.length - 1],
+      };
+
+      callback(null, timeInfo);
+    }) 
+    .catch((err) => callback(err));
 };
 
-exports.getEarliestTwitterTime = getEarliestTwitterTime;
+const getDisqusTimeRange = (userId, callback) => {
+  disqusLogic.getDisqusCommentsAsync(userId)
+    .then((disqusComments) => {
+      const postTimes = disqusComments.map(post => timeParser.parseTimeString(post.time));
+      const postTimesSorted = postTimes.sort(compareTime);
+      const timeInfo = {
+        start: postTimesSorted[0],
+        end: postTimesSorted[postTimesSorted.length - 1],
+      };
 
-const getEarliestDisqusTime = (userId) => {
-  const disqusComments = disqusLogic.getDisqusCommentsSync(userId);
-  const postTimes = disqusComments.map(post => timeParser.parseTimeString(post.time));
-  const postTimesSorted = postTimes.sort(compareTime);
-  return postTimesSorted[0];
+      callback(null, timeInfo);
+    })
+    .catch((err) => callback(err));
 };
-
-exports.getEarliestDisqusTime = getEarliestDisqusTime;
 
 const addDay = (startDate, windowSize) => {
   let interDate = new Date(startDate.year, startDate.month - 1, startDate.day + 1);
@@ -68,21 +80,26 @@ const addDay = (startDate, windowSize) => {
 
 exports.addDay = addDay;
 
-const UEP = (numPostsForEntity / numTotalPost);
+const getAnalysisTimeRange = (twitterUserId, disqusUserId, callback) => {
+  const getTwitterTimeRangeAsync = Promise.promisify(getTwitterTimeRange);
+  const getDisqusTimeRangeAsync = Promise.promisify(getDisqusTimeRange);
 
-const compareProfiles = (twitterUserId, disqusUserId) => {
-  const twitterStartTime = getEarliestTwitterTime(twitterUserId);
-  const disqusStartTime = getEarliestDisqusTime(disqusUserId);
-  const comparison = compareTime(twitterStartTime, disqusStartTime);
-  let startTime = null;
-
-  if (comparison > 0) {
-    startTime = twitterStartTime;
-  } else {
-    startTime = disqusStartTime;
-  }
-
-  // start processing window size here
+  Promise.all([
+    getDisqusTimeRangeAsync(disqusUserId),
+    getTwitterTimeRangeAsync(twitterUserId)
+  ])
+    .then((results) => {
+      const twitterTimeRange = results[1];
+      const disqusTimeRange = results[0];
+      const timeRange = {
+        startTime: compareTime(disqusTimeRange.start, twitterTimeRange.start) > 0 ?
+          twitterTimeRange.start : disqusTimeRange.start,
+        endTime: compareTime(disqusTimeRange.end, twitterTimeRange.end) > 0 ?
+          disqusTimeRange.end : twitterTimeRange.end,
+      };
+      callback(null, timeRange);
+    })
+    .catch((err) => callback(err)); 
 };
 
 const calculateEntitySimilarityOnTimeRange = (twitterUserId, disqusUserId, startTime, endTime, callback) => {
@@ -125,13 +142,19 @@ const calculateEntitySimilarityOnTimeRange = (twitterUserId, disqusUserId, start
 
 };
 
-dbLogic.getDBAsync()
-  .then((dbInstance) => {
-    return dbLogic.getUserPostsFromDbAsync(dbInstance, '1000_bigyahu', 'disqus', new Date(2009, 1, 5), new Date(2016, 6, 6));
-  })
-  .then((disqusMentions) => {
-    console.log(JSON.stringify(disqusMentions, null, 2));
-  })
-  .catch(err => {
+// dbLogic.getUserPostsFromDbAsync('1000_bigyahu', 'disqus', new Date(2009, 1, 5), new Date(2016, 6, 6))
+//   .then((disqusMentions) => {
+//     console.log(JSON.stringify(disqusMentions, null, 2));
+//   })
+//   .catch(err => {
+//     console.log(err);
+//   });
+
+getAnalysisTimeRange('1000_bigyahu', '1000_bigyahu', (err, res) => {
+  if (err) {
     console.log(err);
-  });
+    return;
+  }
+
+  console.log(JSON.stringify(res, null, 2));
+});

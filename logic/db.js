@@ -1,5 +1,5 @@
-const MongoClient = require('mongodb').MongoClient;
 const Promise = require('bluebird');
+const MongoClient = Promise.promisifyAll(require('mongodb').MongoClient);
 const path = require('path');
 
 const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
@@ -13,26 +13,55 @@ const timeParser = require('./parsing/timeParser');
 
 const db = null;
 
+const createDBIndexes = (db, callback) => {
+  const twitterPostCollection = Promise.promisifyAll(db.collection('twitterPosts'));
+  const disqusPostCollection = Promise.promisifyAll(db.collection('disqusPosts'));
+  const twitterEntityMentionCollection = Promise.promisifyAll(db.collection('twitterEntityMentions'));
+  const disqusEntityMentionCollection = Promise.promisifyAll(db.collection('disqusEntityMentions'));
+
+  const indexCreationTasks = [
+    twitterPostCollection.ensureIndexAsync({ userId: 1 }),
+    twitterPostCollection.ensureIndexAsync({ date: 1 }),
+  ];
+
+  Promise.all(indexCreationTasks)
+    .then(() => callback(null, db))
+    .catch((err) => callback(err));
+};
+
+const initDB = (callback) => {
+  const createDBIndexesAsync = Promise.promisify(createDBIndexes);
+  if (db) {
+    callback(null, db);
+    return;
+  }
+
+  const dbOptions = {
+    connectTimeoutMS: 100000,
+  };
+
+  const url = 'mongodb://localhost:27017/temporal_analysis_db';
+  MongoClient.connectAsync(url, dbOptions)
+    .then((db) => createDBIndexesAsync(db))
+    .then((db) => callback(null, db))
+    .catch((err) => {
+      callback(err);
+    })
+};
+
+exports.initDB = initDB;
+
 const getDB = (callback) => {
   if (db) {
     callback(null, db);
     return;
   }
 
-  const url = 'mongodb://localhost:27017/temporal_analysis_db';
-  MongoClient.connect(url, {
-    connectTimeoutMS: 100000,
-  }, (err, db) => {
-    if (err) {
-      callback(err);
-      return;
-    }
-
-    callback(null, db);
-  });
+  initDB(callback);
 };
 
 exports.getDB = getDB;
+
 
 const saveData = (collectionName, data, callback) => {
   getDB((err, db) => {
@@ -231,12 +260,4 @@ const saveUserDataInDB = (userId, callback) => {
       callback(err);
     })
 };
-
-saveUserDataInDB('1000_bigyahu', (err) => {
-  if (err) {
-    console.log(err);
-  }
-
-  console.log('Done');
-})
 
