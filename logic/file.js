@@ -24,3 +24,13 @@ const deleteFolderRecursive = function(path) {
     fs.rmdirSync(path);
   }
 };
+
+exports.deleteFolderRecursive = deleteFolderRecursive;
+
+const getUserIdList = () => {
+  const analysisDir = path.join(process.env.HOME, 'entity-analysis-2');
+  const userDirectories = getDirectories(analysisDir);
+  return userDirectories.map(dir => dir.split('/')[4]);
+};
+
+exports.getUserIdList = getUserIdList;

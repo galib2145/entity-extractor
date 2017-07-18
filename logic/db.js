@@ -1,17 +1,20 @@
 const Promise = require('bluebird');
 const MongoClient = Promise.promisifyAll(require('mongodb').MongoClient);
 const path = require('path');
+const async = require('async');
 
 const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
 const instance = null;
 
+
 const genericLogic = Promise.promisifyAll(require('./analysis/generic'));
+const fileLogic = require('./file');
 const twitterAnalysisLogic = Promise.promisifyAll(require('./analysis/twitter'));
 const disqusAnalysisLogic = Promise.promisifyAll(require('./analysis/disqus'));
 
 const timeParser = require('./parsing/timeParser');
 
-const db = null;
+let db = null;
 
 const createDBIndexes = (db, callback) => {
   const twitterPostCollection = Promise.promisifyAll(db.collection('twitterPosts'));
@@ -42,8 +45,11 @@ const initDB = (callback) => {
 
   const url = 'mongodb://localhost:27017/temporal_analysis_db';
   MongoClient.connectAsync(url, dbOptions)
-    .then((db) => createDBIndexesAsync(db))
-    .then((db) => callback(null, db))
+    .then((newDB) => createDBIndexesAsync(newDB))
+    .then((newDB) => {
+      db = newDB;
+      callback(null, newDB);
+    })
     .catch((err) => {
       callback(err);
     })
@@ -255,9 +261,25 @@ const saveUserDataInDB = (userId, callback) => {
       ];
 
   Promise.all(dataSavingTasks)
-    .then(() => callback())
+    .then(() => {
+      callback();
+    })
     .catch((err) => {
-      callback(err);
+      console.log(err);
+      callback();
     })
 };
 
+const userDirectories = fileLogic.getDirectories(dataDirectory);
+async.forEachOfSeries(userDirectories, (userDir, index, callback) => {
+  const userId = userDir.split('/')[4];
+  console.log(`\nSaving user data for : ${userId}`);
+  saveUserDataInDB(userId, callback);
+}, (err) => {
+  if (err) {
+    console.log(err.message);
+    return;
+  }
+
+  console.log('Tasks executed successfully');
+});

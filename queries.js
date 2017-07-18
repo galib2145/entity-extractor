@@ -1,17 +1,17 @@
 const fs = require('fs');
 
-const logics = require('./logics');
+const fileLogic = require('./logic/file');
 const rootDirectory = '/home/saad-galib/media';
-const userDirectories = logics.getDirectories(rootDirectory);
+const userDirectories = fileLogic.getDirectories(rootDirectory);
 
 const getDisqusTopicData = (userId) => {
-  const disqusDataStoreFilePath = `/home/saad-galib/entity-analysis/${userId}/disqus-data-store.json`;
+  const disqusDataStoreFilePath = `/home/saad-galib/entity-analysis-2/${userId}/disqus-store`;
   const fileContent = fs.readFileSync(disqusDataStoreFilePath).toString();
   return (JSON.parse(fileContent)).entityList;
 };
 
 const getTwitterTopicData = (userId) => {
-  const disqusDataStoreFilePath = `/home/saad-galib/entity-analysis/${userId}/twitter-data-store.json`;
+  const disqusDataStoreFilePath = `/home/saad-galib/entity-analysis-2/${userId}/twitter-store`;
   const fileContent = fs.readFileSync(disqusDataStoreFilePath).toString();
   return (JSON.parse(fileContent)).entityList;
 };
@@ -54,21 +54,41 @@ const getRecurrentTopicUserPercentage = () => {
 }
 
 const getTopicIntersection = (userId) => {
-  const disqusTopicData = getDisqusTopicData(userId);
-  const twitterTopicData = getTwitterTopicData(userId);
+  try {
+    const disqusTopicData = getDisqusTopicData(userId);
+    const twitterTopicData = getTwitterTopicData(userId);
+    const matchedEntities = [];
 
-  const mapped = disqusTopicData.map((disqusEntry) => {
-    const match = twitterTopicData.find((twitterEntry) => twitterEntry.entity === disqusEntry.entity);
-    if (match) {
-      return 1;
-    }
+    const mapped = disqusTopicData.map((disqusEntry) => {
+      const match = twitterTopicData.find((twitterEntry) => twitterEntry.entity === disqusEntry.entity);
+      if (match) {
+        matchedEntities.push(disqusEntry);
+        return 1;
+      }
 
+      return 0;
+    });
+
+    return mapped.reduce((prevVal, elem) => {
+      return prevVal + elem;
+    }, 0);
+  } catch (err) {
     return 0;
-  });
-
-  return mapped.reduce((prevVal, elem) => {
-    return prevVal + elem;
-  }, 0);
+  }
 };
 
-console.log(getTopicIntersection('1000_bigyahu'));
+const intersectionArray = [];
+
+userDirectories.forEach((dir) => {
+  const userId = dir.split('/')[4];
+  const intersection = getTopicIntersection(userId);
+  if (intersection > 100) {
+    intersectionArray.push({
+      userId,
+      intersection,
+    });
+  }
+});
+
+console.log(`Total acceptable intersection: ${intersectionArray.length}`);
+fs.writeFileSync('/home/saad-galib/intersection-report', JSON.stringify(intersectionArray, null, 2));
