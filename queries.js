@@ -5,13 +5,13 @@ const rootDirectory = '/home/saad-galib/media';
 const userDirectories = fileLogic.getDirectories(rootDirectory);
 
 const getDisqusTopicData = (userId) => {
-  const disqusDataStoreFilePath = `/home/saad-galib/entity-analysis-2/${userId}/disqus-store`;
+  const disqusDataStoreFilePath = `/home/saad-galib/Downloads/entity-analysis-2/${userId}/disqus-store`;
   const fileContent = fs.readFileSync(disqusDataStoreFilePath).toString();
   return (JSON.parse(fileContent)).entityList;
 };
 
 const getTwitterTopicData = (userId) => {
-  const disqusDataStoreFilePath = `/home/saad-galib/entity-analysis-2/${userId}/twitter-store`;
+  const disqusDataStoreFilePath = `/home/saad-galib/Downloads/entity-analysis-2/${userId}/twitter-store`;
   const fileContent = fs.readFileSync(disqusDataStoreFilePath).toString();
   return (JSON.parse(fileContent)).entityList;
 };
@@ -53,7 +53,7 @@ const getRecurrentTopicUserPercentage = () => {
   return (validRecurrentPercentages.length / numvalidDirectories) * 100;
 }
 
-const getTopicIntersection = (userId) => {
+const getDisqusTopicIntersectionPercentage = (userId) => {
   try {
     const disqusTopicData = getDisqusTopicData(userId);
     const twitterTopicData = getTwitterTopicData(userId);
@@ -69,9 +69,11 @@ const getTopicIntersection = (userId) => {
       return 0;
     });
 
-    return mapped.reduce((prevVal, elem) => {
+    const intrNum = mapped.reduce((prevVal, elem) => {
       return prevVal + elem;
     }, 0);
+
+    return intrNum / disqusTopicData.length;
   } catch (err) {
     return 0;
   }
@@ -81,13 +83,11 @@ const intersectionArray = [];
 
 userDirectories.forEach((dir) => {
   const userId = dir.split('/')[4];
-  const intersection = getTopicIntersection(userId);
-  if (intersection > 100) {
-    intersectionArray.push({
-      userId,
-      intersection,
-    });
-  }
+  const percentage = getDisqusTopicIntersectionPercentage(userId);
+  intersectionArray.push({
+    userId,
+    intersection,
+  });
 });
 
 console.log(`Total acceptable intersection: ${intersectionArray.length}`);

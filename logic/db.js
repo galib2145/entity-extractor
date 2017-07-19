@@ -270,16 +270,16 @@ const saveUserDataInDB = (userId, callback) => {
     })
 };
 
-const userDirectories = fileLogic.getDirectories(dataDirectory);
-async.forEachOfSeries(userDirectories, (userDir, index, callback) => {
-  const userId = userDir.split('/')[4];
-  console.log(`\nSaving user data for : ${userId}`);
-  saveUserDataInDB(userId, callback);
-}, (err) => {
-  if (err) {
-    console.log(err.message);
-    return;
-  }
+// const userDirectories = fileLogic.getDirectories(dataDirectory);
+// async.forEachOfSeries(userDirectories, (userDir, index, callback) => {
+//   const userId = userDir.split('/')[4];
+//   console.log(`\nSaving user data for : ${userId}`);
+//   saveUserDataInDB(userId, callback);
+// }, (err) => {
+//   if (err) {
+//     console.log(err.message);
+//     return;
+//   }
 
-  console.log('Tasks executed successfully');
-});
+//   console.log('Tasks executed successfully');
+// });

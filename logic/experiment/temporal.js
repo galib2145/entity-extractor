@@ -199,26 +199,22 @@ const calculateEntitySimilarity = (twitterUserId, disqusUserId, callback) => {
       const nonzeroes = results.filter(r => r > 0);
       const sum = nonzeroes.reduce((prevVal, elem) => prevVal + elem, 0);
       const avg = sum / results.length;
-      console.log(`Task finished for user: ${disqusUserId}`);
+      console.log(`Task finished for user: ${twitterUserId}`);
       callback(null, avg);
     })
     .catch(err => {
-      callback(err);
+      callback(null, 0);
     });
 };
 
 exports.calculateEntitySimilarity = calculateEntitySimilarity;
 
-const similarityMatchingTask = (userId, taskIndex, callback) => {
-
-};
-
 // this method would generate a top 10 ranking
-const generateEntitySimilarityRankingWithDisqus = (userId, callback) => {
+const generateEntitySimilarityRankingWithTwitter = (userId, callback) => {
   const userIdList = (fileLogic.getUserIdList()).slice(0, 30);
   async.mapSeries(userIdList,
-    (disqusUserId, callback) => {
-      calculateEntitySimilarity(userId, disqusUserId, callback);
+    (twitterUserId, callback) => {
+      calculateEntitySimilarity(twitterUserId, userId, callback);
     }, (err, results) => {
       if (err) {
         callback(err);
@@ -238,11 +234,15 @@ const generateEntitySimilarityRankingWithDisqus = (userId, callback) => {
 
 };
 
-// calculateEntitySimilarity('100204_gregordotus', '100204_gregordotus', (err, res) => {
-//   if (err) {
-//     console.log(err);
-//     return;
-//   }
 
-//   console.log(JSON.stringify(res, null, 2));
-// });
+const startTime = new Date();
+generateEntitySimilarityRankingWithTwitter('100204_gregordotus', (err, res) => {
+  if (err) {
+    console.log(err);
+    return;
+  }
+
+  console.log(`Start time: ${startTime}`);
+  console.log(`End time : ${new Date()}`);
+  console.log(JSON.stringify(res, null, 2));
+});
