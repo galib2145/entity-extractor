@@ -47,6 +47,8 @@ const getProcessedEntityInfoList = (analysisList, media, comments) => {
       } else {
         entities[entityText] = {
           count: mentionTimes.length,
+          type: entityInfo.type,
+          details: entityInfo.disambiguated,
           mentionTimes,
           mentionSentiments,
           mentionEmotions,
@@ -60,6 +62,8 @@ const getProcessedEntityInfoList = (analysisList, media, comments) => {
     return {
       entity: key,
       count: entry.count,
+      type: entry.type,
+      details: entry.details,
       mentionTimes: entry.mentionTimes,
       sentiments: entry.mentionSentiments,
       emotions: entry.mentionEmotions,

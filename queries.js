@@ -1,17 +1,32 @@
+const Promise = require('bluebird');
+
 const fs = require('fs');
+const path = require('path');
 
 const fileLogic = require('./logic/file');
-const rootDirectory = '/home/saad-galib/media';
-const userDirectories = fileLogic.getDirectories(rootDirectory);
+const config = require('./config');
+const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
 
 const getDisqusTopicData = (userId) => {
-  const disqusDataStoreFilePath = `/home/saad-galib/Downloads/entity-analysis-2/${userId}/disqus-store`;
+  const disqusDataStoreFilePath = path.join(
+    process.env.HOME,
+    config.dir.alchemyAnalysis,
+    `/${userId}`,
+    'disqus-store'
+  );
+
   const fileContent = fs.readFileSync(disqusDataStoreFilePath).toString();
   return (JSON.parse(fileContent)).entityList;
 };
 
 const getTwitterTopicData = (userId) => {
-  const disqusDataStoreFilePath = `/home/saad-galib/Downloads/entity-analysis-2/${userId}/twitter-store`;
+  const disqusDataStoreFilePath = path.join(
+    process.env.HOME,
+    config.dir.alchemyAnalysis,
+    `/${userId}`,
+    'twitter-store'
+  );
+
   const fileContent = fs.readFileSync(disqusDataStoreFilePath).toString();
   return (JSON.parse(fileContent)).entityList;
 };
@@ -73,22 +88,39 @@ const getDisqusTopicIntersectionPercentage = (userId) => {
       return prevVal + elem;
     }, 0);
 
-    return intrNum / disqusTopicData.length;
+    const matchPercent = (intrNum / disqusTopicData.length) * 100;
+    console.log(`Match percent for user: ${userId}: ${matchPercent}`);
+    return matchPercent;
   } catch (err) {
-    return 0;
+    throw err;
   }
 };
 
-const intersectionArray = [];
-
-userDirectories.forEach((dir) => {
-  const userId = dir.split('/')[4];
-  const percentage = getDisqusTopicIntersectionPercentage(userId);
-  intersectionArray.push({
-    userId,
-    intersection,
+const getDisqusTopicIntersectionData = () => {
+  const intersectionArray = [];
+  const userDirectories = fileLogic.getDirectories(dataDirectory);
+  userDirectories.forEach((dir) => {
+    const userId = dir.split('/')[4];
+    const percentage = getDisqusTopicIntersectionPercentage(userId);
+    intersectionArray.push({
+      userId,
+      percentage,
+    });
   });
-});
 
-console.log(`Total acceptable intersection: ${intersectionArray.length}`);
-fs.writeFileSync('/home/saad-galib/intersection-report', JSON.stringify(intersectionArray, null, 2));
+  const percentPlot = [];
+  for (let i = 1; i <= 100; i++) {
+    const numResults = (intersectionArray.filter((e) => 
+      e.percentage > i)).length;
+    percentPlot.push({
+      percent: i,
+      num: numResults,
+    });
+  }
+
+  return percentPlot;
+};
+
+exports.getDisqusTopicIntersectionData = getDisqusTopicIntersectionData;
+
+console.log(JSON.stringify(getDisqusTopicIntersectionData(), null, 2));

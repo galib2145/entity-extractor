@@ -6,6 +6,8 @@ const path = require('path');
 
 const dataLogic = Promise.promisifyAll(require('./logic/analysis/generic.js'));
 const fileLogic = Promise.promisifyAll(require('./logic/file'));
+const queries = require('./queries');
+const intersectionData = require('./data/intersection');
 
 app.listen(3000, function() {
   console.log('listening on 3000')
@@ -32,6 +34,7 @@ app.get('/user/:id/:media', function(req, res) {
       return {
         text: r.entity,
         size: r.count,
+        type: r.type,
       }
     });
 
@@ -45,4 +48,8 @@ app.get('/users', function(req, res) {
   const userDirList = fileLogic.getDirectories(userDir);
   const userList = userDirList.map((dir) => dir.split('/')[4]);
   res.json(userList);
+});
+
+app.get('/intersection', function(req, res) {
+  res.json(intersectionData);
 });
