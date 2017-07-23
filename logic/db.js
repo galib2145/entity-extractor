@@ -291,6 +291,8 @@ const saveUserDataInDB = (userId, callback) => {
     });
 };
 
+exports.saveUserDataInDB = saveUserDataInDB;
+
 const getUserDataForTimeRange = (userId, media, timeRange, callback) => {
   const startDate = utils.getDateFromTime(timeRange.startTime);
   const endDate = utils.getDateFromTime(timeRange.endTime);
@@ -318,17 +320,3 @@ const getUserDataForTimeRange = (userId, media, timeRange, callback) => {
 };
 
 exports.getUserDataForTimeRange = getUserDataForTimeRange;
-
-// const userDirectories = fileLogic.getDirectories(dataDirectory);
-// async.forEachOfSeries(userDirectories, (userDir, index, callback) => {
-//   const userId = userDir.split('/')[4];
-//   console.log(`\nSaving user data for : ${userId}`);
-//   saveUserDataInDB(userId, callback);
-// }, (err) => {
-//   if (err) {
-//     console.log(err.message);
-//     return;
-//   }
-
-//   console.log('Tasks executed successfully');
-// });

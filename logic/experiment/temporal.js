@@ -16,16 +16,18 @@ const config = require('../../config');
 
 const getEntityMentionIntersection = (disqusMentions, twitterMentions) => {
   let intersection = [];
-  disqusMentions.forEach((a) => {
-    twitterMentions.forEach((b) => {
-      if (a.entity === b.entity)
+
+  for (let disqusEntry in disqusMentions) {
+    for (let twitterEntry in twitterMentions) {
+      if (disqusEntry.includes(twitterEntry) || twitterEntry.includes(disqusEntry)) {
         intersection.push({
-          entity: a.entity,
-          disqusMentionCount: a.postCount,
-          twitterMentionCount: b.postCount,
+          entity: disqusEntry,
+          disqusMentionCount: disqusMentions[disqusEntry],
+          twitterMentionCount: twitterMentions[twitterEntry],
         });
-    });
-  });
+      }
+    }
+  }
 
   return intersection;
 };
@@ -133,12 +135,25 @@ const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime
     return 0;
   }
 
-  const uniqueDisqusMentions = _.uniqBy(disqusMentions, 'entity');
-  const uniqueTwitterMentions = _.uniqBy(twitterMentions, 'entity');
+  const uniqueDisqusMentions = [];
+  disqusMentions.map(function(a) {
+    if (a.entity in uniqueDisqusMentions) uniqueDisqusMentions[a.entity]++;
+    else uniqueDisqusMentions[a.entity] = 1;
+  });
+
+  const uniqueTwitterMentions = [];
+  twitterMentions.map(function(a) {
+    if (a.entity in uniqueTwitterMentions) uniqueTwitterMentions[a.entity]++;
+    else uniqueTwitterMentions[a.entity] = 1;
+  });
 
   const entityIntersection = getEntityMentionIntersection(uniqueDisqusMentions, uniqueTwitterMentions);
   if (entityIntersection.length === 0) {
     return 0;
+  }
+
+  if (startTime.year === 2016 && startTime.day === 18 && startTime.month === 4) {
+    console.log(entityIntersection);
   }
 
   const disqusUEPList = entityIntersection.map((entry) =>
@@ -219,11 +234,15 @@ const calculateEntitySimilarity = (twitterUserId, disqusUserId, callback) => {
 
 exports.calculateEntitySimilarity = calculateEntitySimilarity;
 
+
+const startTime = new Date();
 calculateEntitySimilarity('1000_bigyahu', '1000_bigyahu', (err, r) => {
   if (err) {
     console.log(err);
     return;
   }
 
+  console.log(`Start time: ${startTime}`);
+  console.log(`End time : ${new Date()}`);
   console.log(JSON.stringify(r, null, 2));
 });
