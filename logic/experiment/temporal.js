@@ -2,6 +2,7 @@ const path = require('path');
 const Promise = require('bluebird');
 const fs = Promise.promisifyAll(require('fs'));
 const async = require('async');
+const _ = require('lodash');
 
 const twitterLogic = require('../analysis/twitter');
 const dbLogic = Promise.promisifyAll(require('../db.js'));
@@ -96,7 +97,7 @@ const getAnalysisTimeRange = (twitterUserId, disqusUserId, callback) => {
       const disqusTimeRange = results[0];
       const timeRange = {
         startTime: compareTime(disqusTimeRange.start, twitterTimeRange.start) > 0 ?
-          disqusTimeRange.start.start : twitterTimeRange.start,
+          disqusTimeRange.start : twitterTimeRange.start,
         endTime: compareTime(disqusTimeRange.end, twitterTimeRange.end) > 0 ?
           twitterTimeRange.end : disqusTimeRange.end,
       };
@@ -105,78 +106,71 @@ const getAnalysisTimeRange = (twitterUserId, disqusUserId, callback) => {
     .catch((err) => callback(err));
 };
 
-const calculateEntitySimilarityOnTimeRange = (twitterUserId, disqusUserId, startTime, endTime, callback) => {
+const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime, endTime) => {
   const startDate = new Date(startTime.year, startTime.month, startTime.day);
   const endDate = new Date(endTime.year, endTime.month, endTime.day);
-  let disqusMentions = [];
-  let twitterMentions = [];
 
-  dbLogic.getDBAsync()
-    .then((dbInstance) => {
-      const mentionFindTasks = [
-        dbLogic.getUserMentionsFromDbAsync(disqusUserId, 'disqus', startDate, endDate),
-        dbLogic.getUserMentionsFromDbAsync(twitterUserId, 'twitter', startDate, endDate),
-      ];
+  const disqusMentions = disqusData.mentions.filter((m) =>
+    m.date >= startDate && m.date <= endDate
+  );
 
-      return Promise.all(mentionFindTasks);
-    })
-    .then((taskResults) => {
-      disqusMentions = taskResults[0];
-      twitterMentions = taskResults[1];
-      const postFindTasks = [
-        dbLogic.getUserPostsFromDbAsync(disqusUserId, 'disqus', startDate, endDate),
-        dbLogic.getUserPostsFromDbAsync(twitterUserId, 'twitter', startDate, endDate),
-      ];
+  const twitterMentions = twitterData.mentions.filter((m) =>
+    m.date >= startDate && m.date <= endDate
+  );
 
-      return Promise.all(postFindTasks);
-    })
-    .then((taskResults) => {
-      const numDisqusPosts = taskResults[0].length;
-      if (numDisqusPosts === 0) {
-        callback(null, 0);
-        return;
-      }
+  const twitterPosts = twitterData.posts.filter((m) =>
+    m.date >= startDate && m.date <= endDate
+  );
 
-      const numTwitterPosts = taskResults[1].length;
-      if (numTwitterPosts === 0) {
-        callback(null, 0);
-        return;
-      }
+  const disqusComments = disqusData.posts.filter((m) =>
+    m.date >= startDate && m.date <= endDate
+  );
 
-      const entityIntersection = getEntityMentionIntersection(disqusMentions, twitterMentions);
-      if (entityIntersection.length === 0) {
-        callback(null, 0);
-        return;
-      }
+  if (twitterPosts.length === 0 ||
+    disqusComments.length === 0 ||
+    disqusMentions.length === 0 ||
+    twitterMentions.length === 0) {
+    return 0;
+  }
 
-      const disqusUEPList = entityIntersection.map((entry) => entry.disqusMentionCount / numDisqusPosts);
-      const twitterUEPList = entityIntersection.map((entry) => entry.twitterMentionCount / numTwitterPosts);
-      const sim = mathLogic.getDotProduct(disqusUEPList, twitterUEPList);
-      callback(null, sim);
-    })
-    .catch(err => {
-      callback(err);
-    });
+  const uniqueDisqusMentions = _.uniqBy(disqusMentions, 'entity');
+  const uniqueTwitterMentions = _.uniqBy(twitterMentions, 'entity');
 
+  const entityIntersection = getEntityMentionIntersection(uniqueDisqusMentions, uniqueTwitterMentions);
+  if (entityIntersection.length === 0) {
+    return 0;
+  }
+
+  const disqusUEPList = entityIntersection.map((entry) =>
+    entry.disqusMentionCount / disqusComments.length
+  );
+
+  const twitterUEPList = entityIntersection.map((entry) =>
+    entry.twitterMentionCount / twitterPosts.length
+  );
+
+  const similarity = mathLogic.getDotProduct(disqusUEPList, twitterUEPList);
+  return similarity;
 };
 
-const makeEntitySimilarityTasksForTimeRange = (twitterUserId, disqusUserId, timeRange) => {
-  const calculateEntitySimilarityOnTimeRangeAsync = Promise.promisify(calculateEntitySimilarityOnTimeRange);
+const getTimeSlotsByDays = (timeRange, numDays) => {
   const startTime = timeRange.startTime;
   const endTime = timeRange.endTime;
   let windowStart = startTime;
-  const timeBasedTasks = [];
+  const timeSlots = [];
 
   for (;;) {
-    let windowEnd = addDays(windowStart, 7);
+    let windowEnd = addDays(windowStart, numDays);
     let endFlag = false;
     if (compareTime(windowEnd, endTime) > 0) {
       windowEnd = endTime;
       endFlag = true;
     }
 
-    timeBasedTasks.push(
-      calculateEntitySimilarityOnTimeRangeAsync(twitterUserId, disqusUserId, windowStart, windowEnd));
+    timeSlots.push({
+      windowStart,
+      windowEnd,
+    });
     if (endFlag) {
       break;
     } else {
@@ -184,65 +178,52 @@ const makeEntitySimilarityTasksForTimeRange = (twitterUserId, disqusUserId, time
     }
   }
 
-  return timeBasedTasks;
+  return timeSlots;
 };
 
 const calculateEntitySimilarity = (twitterUserId, disqusUserId, callback) => {
   const getAnalysisTimeRangeAsync = Promise.promisify(getAnalysisTimeRange);
-  const calculateEntitySimilarityOnTimeRangeAsync = Promise.promisify(calculateEntitySimilarityOnTimeRange);
+  let analysisTimeRange = null;
   getAnalysisTimeRangeAsync(twitterUserId, disqusUserId)
     .then((timeRange) => {
-      const timeBasedTasks = makeEntitySimilarityTasksForTimeRange(twitterUserId, disqusUserId, timeRange);
-      return Promise.all(timeBasedTasks);
+      analysisTimeRange = timeRange;
+      return Promise.all([
+        dbLogic.getUserDataForTimeRangeAsync(twitterUserId, 'twitter', timeRange),
+        dbLogic.getUserDataForTimeRangeAsync(disqusUserId, 'disqus', timeRange),
+      ]);
     })
     .then((results) => {
-      const nonzeroes = results.filter(r => r > 0);
+      const twitterUserData = results[0];
+      const disqusUserData = results[1];
+      const timeSlots = getTimeSlotsByDays(analysisTimeRange, 7);
+      const simList = timeSlots.map((timeSlot) => {
+        return calculateEntitySimilarityOnTimeRange(
+          twitterUserData,
+          disqusUserData,
+          timeSlot.windowStart,
+          timeSlot.windowEnd
+        );
+      });
+
+      const nonzeroes = simList.filter(r => r > 0);
       const sum = nonzeroes.reduce((prevVal, elem) => prevVal + elem, 0);
       const avg = sum / results.length;
-      console.log(`Task finished for user: ${twitterUserId}`);
+
       callback(null, avg);
     })
-    .catch(err => {
-      callback(null, 0);
+    .catch((err) => {
+      callback(err);
     });
+
 };
 
 exports.calculateEntitySimilarity = calculateEntitySimilarity;
 
-// this method would generate a top 10 ranking
-const generateEntitySimilarityRankingWithTwitter = (userId, callback) => {
-  const userIdList = (fileLogic.getUserIdList()).slice(0, 30);
-  async.mapSeries(userIdList,
-    (twitterUserId, callback) => {
-      calculateEntitySimilarity(twitterUserId, userId, callback);
-    }, (err, results) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-
-      const formattedResults = results.map((r, i) => {
-        return {
-          user: userIdList[i],
-          sim: r,
-        };
-      });
-
-      const res = formattedResults.sort((a, b) => b.sim - a.sim);
-      callback(null, res);
-    });
-
-};
-
-
-const startTime = new Date();
-generateEntitySimilarityRankingWithTwitter('100204_gregordotus', (err, res) => {
+calculateEntitySimilarity('1000_bigyahu', '1000_bigyahu', (err, r) => {
   if (err) {
     console.log(err);
     return;
   }
 
-  console.log(`Start time: ${startTime}`);
-  console.log(`End time : ${new Date()}`);
-  console.log(JSON.stringify(res, null, 2));
+  console.log(JSON.stringify(r, null, 2));
 });
