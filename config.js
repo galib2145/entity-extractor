@@ -4,5 +4,6 @@ module.exports = {
     alchemyAnalysis: '/entity-analysis-2',
     disqusDataStore: '/disqus-store',
     twitterDataStore: '/twitter-store',
+    resultDir: '/match-result',
   },
 };
