@@ -152,9 +152,9 @@ const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime
     return 0;
   }
 
-  if (startTime.year === 2016 && startTime.day === 18 && startTime.month === 4) {
-    console.log(entityIntersection);
-  }
+  // if (startTime.year === 2016 && startTime.day === 18 && startTime.month === 4) {
+  //   console.log(entityIntersection);
+  // }
 
   const disqusUEPList = entityIntersection.map((entry) =>
     entry.disqusMentionCount / disqusComments.length
@@ -234,15 +234,69 @@ const calculateEntitySimilarity = (twitterUserId, disqusUserId, callback) => {
 
 exports.calculateEntitySimilarity = calculateEntitySimilarity;
 
+const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, callback) => {
+  async.mapSeries(userIdList,
+    (twitterUserId, callback) => {
+      calculateEntitySimilarity(twitterUserId, userId, callback);
+    }, (err, results) => {
+      if (err) {
+        callback(err);
+        return;
+      }
 
-const startTime = new Date();
-calculateEntitySimilarity('1000_bigyahu', '1000_bigyahu', (err, r) => {
+      const formattedResults = results.map((r, i) => {
+        return {
+          user: userIdList[i],
+          sim: r,
+        };
+      });
+
+      const res = formattedResults.sort((a, b) => b.sim - a.sim);
+      callback(null, res);
+    });
+
+};
+
+const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
+const matchingResults = [];
+const errors = [];
+
+const userIdList = fileLogic.getUserIdList().slice(0, 50);
+async.forEachOfSeries(userIdList, (userId, index, callback) => {
+  const startTime = new Date();
+  console.log(`\nStarting matching for : ${userId}`);
+  generateEntitySimilarityRankingWithTwitter(userId, userIdList,  (err, res) => {
+    if (err) {
+      errors.push({
+        userId,
+        err,
+      });
+      callback();
+      return;
+    }
+
+    console.log(`Start time: ${startTime}`);
+    console.log(`End time : ${new Date()}`);
+    matchingResults.push({
+      userId,
+      res,
+    });
+
+    callback();
+  });
+}, (err) => {
   if (err) {
-    console.log(err);
+    console.log(err.message);
     return;
   }
 
-  console.log(`Start time: ${startTime}`);
-  console.log(`End time : ${new Date()}`);
-  console.log(JSON.stringify(r, null, 2));
+  fs.writeFileSync(
+    path.join(path.join(process.env.HOME, '/res/error')), 
+    JSON.stringify(errors, null, 2)
+  );
+  fs.writeFileSync(
+    path.join(path.join(process.env.HOME, '/res/match')), 
+    JSON.stringify(matchingResults, null, 2)
+  );
+  console.log('Tasks executed successfully');
 });
