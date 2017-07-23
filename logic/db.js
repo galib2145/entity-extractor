@@ -6,6 +6,8 @@ const async = require('async');
 const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
 const instance = null;
 
+const utils = require('../utils');
+
 
 const genericLogic = Promise.promisifyAll(require('./analysis/generic'));
 const fileLogic = require('./file');
@@ -209,10 +211,29 @@ const getUserPostsFromDb = (userId, media, startDate, endDate, callback) => {
     .catch(err => callback(err));
 };
 
-
 exports.getUserPostsFromDb = getUserPostsFromDb;
 
-const getUserMentionsFromDb = (userId, media, startDate, endDate, callback) => {
+const getMentionListFromDb = (userId, media, startDate, endDate, callback) => {
+  const getDataAsync = Promise.promisify(getData);
+  const query = {
+    userId,
+    date: {
+      $gte: startDate,
+      $lte: endDate,
+    },
+  };
+
+  const collectionName = `${media}EntityMentions`;
+  getDataAsync(collectionName, query)
+    .then((mentions) => {
+      callback(null, mentions);
+    })
+    .catch(err => callback(err));
+};
+
+exports.getMentionListFromDb = getMentionListFromDb;
+
+const getUserMentionMapFromDb = (userId, media, startDate, endDate, callback) => {
   const getAggregateDataAsync = Promise.promisify(getAggregateData);
   const query = [
     {
@@ -248,7 +269,7 @@ const getUserMentionsFromDb = (userId, media, startDate, endDate, callback) => {
     .catch(err => callback(err));
 };
 
-exports.getUserMentionsFromDb = getUserMentionsFromDb;
+exports.getUserMentionMapFromDb = getUserMentionMapFromDb;
 
 const saveUserDataInDB = (userId, callback) => {
   const saveUserPostsAsync = Promise.promisify(saveUserPosts);
@@ -267,8 +288,36 @@ const saveUserDataInDB = (userId, callback) => {
     .catch((err) => {
       console.log(err);
       callback();
-    })
+    });
 };
+
+const getUserDataForTimeRange = (userId, media, timeRange, callback) => {
+  const startDate = utils.getDateFromTime(timeRange.startTime);
+  const endDate = utils.getDateFromTime(timeRange.endTime);
+
+  const getUserPostsFromDbAsync = Promise.promisify(getUserPostsFromDb);
+  const getMentionListFromDbAsync = Promise.promisify(getMentionListFromDb);
+
+  const dataFetchingTasks = [
+    getUserPostsFromDbAsync(userId, media, startDate, endDate),
+    getMentionListFromDbAsync(userId, media, startDate, endDate)
+  ];
+
+  Promise.all(dataFetchingTasks)
+    .then((taskResults) => {
+      const userData = {
+        posts: taskResults[0],
+        mentions: taskResults[1],
+      };
+
+      callback(null, userData);
+    })
+    .catch((err) => {
+      callback(err);
+    });
+};
+
+exports.getUserDataForTimeRange = getUserDataForTimeRange;
 
 // const userDirectories = fileLogic.getDirectories(dataDirectory);
 // async.forEachOfSeries(userDirectories, (userDir, index, callback) => {
