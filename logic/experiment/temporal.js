@@ -19,7 +19,7 @@ const getEntityMentionIntersection = (disqusMentions, twitterMentions) => {
 
   for (let disqusEntry in disqusMentions) {
     for (let twitterEntry in twitterMentions) {
-      if (disqusEntry.includes(twitterEntry) || twitterEntry.includes(disqusEntry)) {
+      if (twitterEntry.includes(disqusEntry)) {
         intersection.push({
           entity: disqusEntry,
           disqusMentionCount: disqusMentions[disqusEntry],
@@ -135,13 +135,13 @@ const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime
     return 0;
   }
 
-  const uniqueDisqusMentions = [];
+  let uniqueDisqusMentions = {};
   disqusMentions.map(function(a) {
     if (a.entity in uniqueDisqusMentions) uniqueDisqusMentions[a.entity]++;
     else uniqueDisqusMentions[a.entity] = 1;
   });
 
-  const uniqueTwitterMentions = [];
+  let uniqueTwitterMentions = {};
   twitterMentions.map(function(a) {
     if (a.entity in uniqueTwitterMentions) uniqueTwitterMentions[a.entity]++;
     else uniqueTwitterMentions[a.entity] = 1;
@@ -165,6 +165,7 @@ const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime
   );
 
   const similarity = mathLogic.getDotProduct(disqusUEPList, twitterUEPList);
+
   return similarity;
 };
 
@@ -222,12 +223,13 @@ const calculateEntitySimilarity = (twitterUserId, disqusUserId, callback) => {
 
       const nonzeroes = simList.filter(r => r > 0);
       const sum = nonzeroes.reduce((prevVal, elem) => prevVal + elem, 0);
-      const avg = sum / results.length;
+      const avg = sum / simList.length;
 
       callback(null, avg);
     })
     .catch((err) => {
       callback(err);
+      return;
     });
 
 };
@@ -261,11 +263,12 @@ const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
 const matchingResults = [];
 const errors = [];
 
-const userIdList = fileLogic.getUserIdList().slice(0, 50);
+const processStart = new Date();
+const userIdList = fileLogic.getUserIdList().slice(0, 100);
 async.forEachOfSeries(userIdList, (userId, index, callback) => {
   const startTime = new Date();
   console.log(`\nStarting matching for : ${userId}`);
-  generateEntitySimilarityRankingWithTwitter(userId, userIdList,  (err, res) => {
+  generateEntitySimilarityRankingWithTwitter(userId, userIdList, (err, res) => {
     if (err) {
       errors.push({
         userId,
@@ -291,12 +294,15 @@ async.forEachOfSeries(userIdList, (userId, index, callback) => {
   }
 
   fs.writeFileSync(
-    path.join(path.join(process.env.HOME, '/res/error')), 
+    path.join(path.join(process.env.HOME, '/res/error')),
     JSON.stringify(errors, null, 2)
   );
   fs.writeFileSync(
-    path.join(path.join(process.env.HOME, '/res/match')), 
+    path.join(path.join(process.env.HOME, '/res/match')),
     JSON.stringify(matchingResults, null, 2)
   );
+
+  console.log(`\nStart time: ${processStart}`);
+  console.log(`End time : ${new Date()}`);
   console.log('Tasks executed successfully');
 });
