@@ -1,9 +1,20 @@
+const path = require('path');
 const Promise = require('bluebird');
+const fs = Promise.promisifyAll(require('fs'));
+const async = require('async');
+const _ = require('lodash');
 
+const twitterLogic = require('../analysis/twitter');
 const dbLogic = Promise.promisifyAll(require('../db.js'));
-const mathLogic = require('../math.js');
+const disqusLogic = require('../analysis/disqus');
+const timeParser = require('../parsing/timeParser');
+const mathLogic = require('../math');
 
 const temporal = Promise.promisifyAll(require('./temporal'));
+
+const fileLogic = Promise.promisifyAll(require('../file.js'));
+
+const config = require('../../config');
 
 // Given a set of mentions and an entity  
 // this method will return the number
@@ -186,6 +197,29 @@ const calculateEntitySimilarity = (twitterUserId, disqusUserId, callback) => {
 
 };
 
+const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, callback) => {
+  async.mapSeries(userIdList,
+    (twitterUserId, callback) => {
+      calculateEntitySimilarity(twitterUserId, userId, callback);
+    }, (err, results) => {
+      if (err) {
+        callback(err);
+        return;
+      }
+
+      const formattedResults = results.map((r, i) => {
+        return {
+          user: userIdList[i],
+          sim: r,
+        };
+      });
+
+      const res = formattedResults.sort((a, b) => b.sim - a.sim);
+      callback(null, res);
+    });
+
+};
+
 const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
 const matchingResults = [];
 const errors = [];
@@ -197,6 +231,7 @@ async.forEachOfSeries(userIdList, (userId, index, callback) => {
   console.log(`\nStarting matching for : ${userId}`);
   generateEntitySimilarityRankingWithTwitter(userId, userIdList, (err, res) => {
     if (err) {
+      console.log(err);
       errors.push({
         userId,
         err,
