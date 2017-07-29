@@ -2,7 +2,7 @@ const Promise = require('bluebird');
 const fs = Promise.promisifyAll(require('fs'));
 const path = require('path');
 
-const resFilePath = path.join(process.env.HOME, '/res/match');
+const resFilePath = path.join(process.env.HOME, '/res/match-sentiment');
 fs.readFileAsync(resFilePath)
   .then((fileContent) => {
     const resultList = JSON.parse(fileContent);
