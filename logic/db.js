@@ -139,6 +139,8 @@ const getMentionsFromEntityData = (userId, entityData) => {
       const userMention = {
         entity: entity.entity,
         userId,
+        type: entity.type,
+        details: entity.details,
         date: new Date(mentionTime.year, mentionTime.month, mentionTime.day),
         sentiment: entity.sentiments[j],
         emotion: entity.emotions[j],
