@@ -14,7 +14,7 @@ const getRunDataFromTemporalResult = (callback) => {
       const dataForRun = resultData.map((r) => {
         const userData = {};
         userData.id = r.userId;
-        userData.matchCandidates = r.res.slice(0, 20);
+        userData.matchCandidates = r.res.slice(0, 20).map(c => c.user);
         return userData;
       });
       callback(null, dataForRun);

@@ -86,26 +86,3 @@ const getEntitiesForUser = (userId, media, callback) => {
 };
 
 exports.getEntitiesForUser = getEntitiesForUser;
-
-const getCosineSimilarity = (u1Entities, u2Entities) => {
-  const entityUnion = u1Entities.concat(u2Entities);
-  const featureSet = _.uniqBy(entityUnion, (e) => e);
-
-  const u1Vector = featureSet.map((feature) => {
-    if (u1Entities.includes(feature)) {
-      return 1;
-    }
-
-    return 0;
-  });
-
-  const u2Vector = featureSet.map((feature) => {
-    if (u2Entities.includes(feature)) {
-      return 1;
-    }
-
-    return 0;
-  });
-
-  return cosineSim(u1Vector, u2Vector);
-};
