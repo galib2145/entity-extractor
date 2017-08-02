@@ -154,10 +154,6 @@ const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime
     return 0;
   }
 
-  // if (startTime.year === 2016 && startTime.day === 18 && startTime.month === 4) {
-  //   console.log(entityIntersection);
-  // }
-
   const disqusUEPList = entityIntersection.map((entry) =>
     entry.disqusMentionCount / disqusComments.length
   );
@@ -263,50 +259,4 @@ const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, callback
 
 };
 
-// const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
-// const matchingResults = [];
-// const errors = [];
-
-// const processStart = new Date();
-// const userIdList = fileLogic.getUserIdList().slice(0, 100);
-// async.forEachOfSeries(userIdList, (userId, index, callback) => {
-//   const startTime = new Date();
-//   console.log(`\nStarting matching for : ${userId}`);
-//   generateEntitySimilarityRankingWithTwitter(userId, userIdList, (err, res) => {
-//     if (err) {
-//       errors.push({
-//         userId,
-//         err,
-//       });
-//       callback();
-//       return;
-//     }
-
-//     console.log(`Start time: ${startTime}`);
-//     console.log(`End time : ${new Date()}`);
-//     matchingResults.push({
-//       userId,
-//       res,
-//     });
-
-//     callback();
-//   });
-// }, (err) => {
-//   if (err) {
-//     console.log(err.message);
-//     return;
-//   }
-
-//   fs.writeFileSync(
-//     path.join(path.join(process.env.HOME, '/res/error')),
-//     JSON.stringify(errors, null, 2)
-//   );
-//   fs.writeFileSync(
-//     path.join(path.join(process.env.HOME, '/res/match')),
-//     JSON.stringify(matchingResults, null, 2)
-//   );
-
-//   console.log(`\nStart time: ${processStart}`);
-//   console.log(`End time : ${new Date()}`);
-//   console.log('Tasks executed successfully');
-// });
+exports.generateEntitySimilarityRankingWithTwitter = generateEntitySimilarityRankingWithTwitter;
