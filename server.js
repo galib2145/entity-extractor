@@ -9,6 +9,9 @@ const fileLogic = Promise.promisifyAll(require('./logic/file'));
 const queries = require('./queries');
 const intersectionData = require('./data/intersection');
 
+const temporalLogic = Promise.promisifyAll(require('./logic/experiment/temporal'));
+const dbLogic = Promise.promisifyAll(require('./logic/db'));
+
 app.listen(3000, function() {
   console.log('listening on 3000')
 });
@@ -52,4 +55,31 @@ app.get('/users', function(req, res) {
 
 app.get('/intersection', function(req, res) {
   res.json(intersectionData);
+});
+
+app.get('/compare', function(req, res) {
+  const twitterId = req.query.twitter;
+  const disqusId = req.query.disqus;
+  const interval = req.query.interval;
+  let timeSlots = null;
+  let analysisTimeRange = null;
+
+  temporalLogic.getAnalysisTimeRangeAsync(twitterId, disqusId)
+    .then((timeRange) => {
+      analysisTimeRange = timeRange;
+      timeSlots = temporalLogic.getTimeSlotsByDays(timeRange, interval);
+      return Promise.all([
+        dbLogic.getUserDataForTimeRangeAsync(twitterId, 'twitter', timeRange),
+        dbLogic.getUserDataForTimeRangeAsync(disqusId, 'disqus', timeRange),
+      ]);
+    })
+    .then((results) => {
+      const twitterUserData = results[0];
+      const disqusUserData = results[1];
+      const data = temporalLogic.getNonZeroSlotsWithData(twitterUserData, disqusUserData, timeSlots);
+      res.json({
+        timeRange: analysisTimeRange,
+        analysisData: data,
+      });
+    });
 });

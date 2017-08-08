@@ -110,7 +110,7 @@ const getDisqusTopicIntersectionData = () => {
 
   const percentPlot = [];
   for (let i = 1; i <= 100; i++) {
-    const numResults = (intersectionArray.filter((e) => 
+    const numResults = (intersectionArray.filter((e) =>
       e.percentage > i)).length;
     percentPlot.push({
       percent: i,
@@ -122,5 +122,3 @@ const getDisqusTopicIntersectionData = () => {
 };
 
 exports.getDisqusTopicIntersectionData = getDisqusTopicIntersectionData;
-
-console.log(JSON.stringify(getDisqusTopicIntersectionData(), null, 2));

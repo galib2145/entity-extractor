@@ -110,6 +110,27 @@ const getAnalysisTimeRange = (twitterUserId, disqusUserId, callback) => {
 
 exports.getAnalysisTimeRange = getAnalysisTimeRange;
 
+const filterUserDataByTimeSlot = (userData, timeSlot) => {
+  const startTime = timeSlot.windowStart;
+  const endTime = timeSlot.windowEnd;
+  const startDate = new Date(startTime.year, startTime.month, startTime.day);
+  const endDate = new Date(endTime.year, endTime.month, endTime.day)
+  const filteredMentions = userData.mentions.filter((m) =>
+    m.date >= startDate && m.date <= endDate
+  );
+
+  const filteredPosts = userData.posts.filter((m) =>
+    m.date >= startDate && m.date <= endDate
+  );
+
+  return {
+    posts: filteredPosts,
+    mentions: filteredMentions,
+  };
+};
+
+exports.filterUserDataByTimeSlot = filterUserDataByTimeSlot;
+
 const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime, endTime) => {
   const startDate = new Date(startTime.year, startTime.month, startTime.day);
   const endDate = new Date(endTime.year, endTime.month, endTime.day);
@@ -166,6 +187,50 @@ const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime
 
   return similarity;
 };
+
+const getNonZeroSlotsWithData = (twitterData, disqusData, timeSlots) => {
+  const simList = timeSlots.map((timeSlot) => {
+    return calculateEntitySimilarityOnTimeRange(
+      twitterData,
+      disqusData,
+      timeSlot.windowStart,
+      timeSlot.windowEnd
+    );
+  });
+
+  const nonzeroes = simList.filter(r => r > 0);
+  const sum = nonzeroes.reduce((prevVal, elem) => prevVal + elem, 0);
+  const avg = sum / simList.length;
+
+  const slotData = [];
+
+  simList.forEach((s, i) => {
+    if (s > 0) {
+      const timeSlot = timeSlots[i];
+      const twitterDataForSlot = filterUserDataByTimeSlot(twitterData, timeSlot);
+      const disqusDataForSlot = filterUserDataByTimeSlot(disqusData, timeSlot);
+      slotData.push({
+        timeSlot,
+        twitter: {
+          postCount: twitterDataForSlot.posts.length,
+          mentionCount: twitterDataForSlot.mentions.length,
+        },
+        disqus: {
+          postCount: disqusDataForSlot.posts.length,
+          mentions: disqusDataForSlot.mentions.length,
+        },
+        similarity: s,
+      });
+    }
+  });
+
+  return {
+    sim: avg,
+    slotData,
+  };
+};
+
+exports.getNonZeroSlotsWithData = getNonZeroSlotsWithData;
 
 const getTimeSlotsByDays = (timeRange, numDays) => {
   const startTime = timeRange.startTime;
