@@ -9,6 +9,7 @@ const dbLogic = Promise.promisifyAll(require('../db.js'));
 const disqusLogic = require('../analysis/disqus');
 const timeParser = require('../parsing/timeParser');
 const mathLogic = require('../math');
+const utils = require('../../utils');
 
 const fileLogic = Promise.promisifyAll(require('../file.js'));
 
@@ -20,7 +21,11 @@ const matchEntities = (e1Data, e2Data) => {
   }
 
   if (e1Data.details && e2Data.details) {
-    if (e1Data.type === e2Data.type && e1Data.details.subType === e2Data.details.subType) {
+    const subTypeMatches = utils.intersect(
+      e1Data.details.subType,
+      e2Data.details.subType
+    );
+    if (e1Data.type === e2Data.type && subTypeMatches.length > 0) {
       return true;
     }
   }

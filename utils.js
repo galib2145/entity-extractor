@@ -3,3 +3,16 @@ const getDateFromTime = (time) => {
 };
 
 exports.getDateFromTime = getDateFromTime;
+
+const intersect = (a, b) => {
+  if (!a || !b) {
+    return [];
+  }
+  let t;
+  if (b.length > a.length) t = b, b = a, a = t;
+  return a.filter(function(e) {
+    return b.indexOf(e) > -1;
+  });
+};
+
+exports.intersect = intersect;
