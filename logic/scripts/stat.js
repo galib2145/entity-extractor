@@ -24,24 +24,24 @@ const getGraphDataFromResult = (callback) => {
     });;
 };
 
-getGraphDataFromResult((err, res) => {
-  console.log(res);
-})
+// getGraphDataFromResult((err, res) => {
+//   console.log(res);match-t-100-30
+// })
 
-// const resFilePath = path.join(process.env.HOME, '/res/match-cosine');
-// fs.readFileAsync(resFilePath)
-//   .then((fileContent) => {
-//     const resultList = JSON.parse(fileContent);
-//     const rrList = resultList.map((r) => {
-//       const userId = r.userId;
-//       const index = r.res.findIndex((e) => e.user === userId) + 1;
-//       return 1 / index;
-//     });
+const resFilePath = path.join(process.env.HOME, '/res/match-t-100-30');
+fs.readFileAsync(resFilePath)
+  .then((fileContent) => {
+    const resultList = JSON.parse(fileContent);
+    const rrList = resultList.map((r) => {
+      const userId = r.userId;
+      const index = r.res.findIndex((e) => e.user === userId) + 1;
+      return 1 / index;
+    });
 
-//     const sumRR = rrList.reduce((prevVal, elem) => prevVal + elem, 0);
-//     const mRR = sumRR / rrList.length;
-//     console.log(mRR);
-//   })
-//   .catch((err) => {
-//     console.log(err);
-//   });
+    const sumRR = rrList.reduce((prevVal, elem) => prevVal + elem, 0);
+    const mRR = sumRR / rrList.length;
+    console.log(mRR);
+  })
+  .catch((err) => {
+    console.log(err);
+  });

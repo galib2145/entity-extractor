@@ -14,16 +14,31 @@ const fileLogic = Promise.promisifyAll(require('../file.js'));
 
 const config = require('../../config');
 
+const matchEntities = (e1Data, e2Data) => {
+  if (e1Data.entity === e2Data.entity) {
+    return true;
+  }
+
+  if (e1Data.details && e2Data.details) {
+    if (e1Data.type === e2Data.type && e1Data.details.subType === e2Data.details.subType) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 const getEntityMentionIntersection = (disqusMentions, twitterMentions) => {
   let intersection = [];
-
   for (let disqusEntry in disqusMentions) {
     for (let twitterEntry in twitterMentions) {
-      if (twitterEntry === disqusEntry) {
+      const dEd = disqusMentions[disqusEntry].data;
+      const tED = twitterMentions[twitterEntry].data;
+      if (matchEntities(dEd, tED)) {
         intersection.push({
           entity: disqusEntry,
-          disqusMentionCount: disqusMentions[disqusEntry],
-          twitterMentionCount: twitterMentions[twitterEntry],
+          disqusMentionCount: disqusMentions[disqusEntry].count,
+          twitterMentionCount: twitterMentions[twitterEntry].count,
         });
       }
     }
@@ -160,14 +175,20 @@ const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime
 
   let uniqueDisqusMentions = {};
   disqusMentions.map(function(a) {
-    if (a.entity in uniqueDisqusMentions) uniqueDisqusMentions[a.entity]++;
-    else uniqueDisqusMentions[a.entity] = 1;
+    if (a.entity in uniqueDisqusMentions) uniqueDisqusMentions[a.entity].count++;
+    else uniqueDisqusMentions[a.entity] = {
+      count: 1,
+      data: a,
+    }
   });
 
   let uniqueTwitterMentions = {};
   twitterMentions.map(function(a) {
-    if (a.entity in uniqueTwitterMentions) uniqueTwitterMentions[a.entity]++;
-    else uniqueTwitterMentions[a.entity] = 1;
+    if (a.entity in uniqueTwitterMentions) uniqueTwitterMentions[a.entity].count++;
+    else uniqueTwitterMentions[a.entity] = {
+      count: 1,
+      data: a,
+    }
   });
 
   const entityIntersection = getEntityMentionIntersection(uniqueDisqusMentions, uniqueTwitterMentions);
