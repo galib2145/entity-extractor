@@ -161,7 +161,7 @@ const calcEntitySimWithSentimentAndTimeRange = (
   return uEPList.reduce((prevVal, elem) => prevVal + elem, 0);
 };
 
-const calculateEntitySimilarity = (twitterUserId, disqusUserId, callback) => {
+const calculateEntitySimilarity = (twitterUserId, disqusUserId, windowSize, callback) => {
   let analysisTimeRange = null;
   temporal.getAnalysisTimeRangeAsync(twitterUserId, disqusUserId)
     .then((timeRange) => {
@@ -174,7 +174,7 @@ const calculateEntitySimilarity = (twitterUserId, disqusUserId, callback) => {
     .then((results) => {
       const twitterUserData = results[0];
       const disqusUserData = results[1];
-      const timeSlots = temporal.getTimeSlotsByDays(analysisTimeRange, 7);
+      const timeSlots = temporal.getTimeSlotsByDays(analysisTimeRange, windowSize);
       const simList = timeSlots.map((timeSlot) => {
         return calcEntitySimWithSentimentAndTimeRange(
           twitterUserData,
@@ -197,10 +197,10 @@ const calculateEntitySimilarity = (twitterUserId, disqusUserId, callback) => {
 
 };
 
-const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, callback) => {
+const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, windowSize, callback) => {
   async.mapSeries(userIdList,
     (twitterUserId, callback) => {
-      calculateEntitySimilarity(twitterUserId, userId, callback);
+      calculateEntitySimilarity(twitterUserId, userId, windowSize, callback);
     }, (err, results) => {
       if (err) {
         callback(err);

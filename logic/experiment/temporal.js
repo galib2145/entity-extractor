@@ -262,7 +262,7 @@ const getTimeSlotsByDays = (timeRange, numDays) => {
 
 exports.getTimeSlotsByDays = getTimeSlotsByDays;
 
-const calculateEntitySimilarity = (twitterUserId, disqusUserId, callback) => {
+const calculateEntitySimilarity = (twitterUserId, disqusUserId, windowSize, callback) => {
   const getAnalysisTimeRangeAsync = Promise.promisify(getAnalysisTimeRange);
   let analysisTimeRange = null;
   getAnalysisTimeRangeAsync(twitterUserId, disqusUserId)
@@ -276,7 +276,7 @@ const calculateEntitySimilarity = (twitterUserId, disqusUserId, callback) => {
     .then((results) => {
       const twitterUserData = results[0];
       const disqusUserData = results[1];
-      const timeSlots = getTimeSlotsByDays(analysisTimeRange, 7);
+      const timeSlots = getTimeSlotsByDays(analysisTimeRange, windowSize);
       const simList = timeSlots.map((timeSlot) => {
         return calculateEntitySimilarityOnTimeRange(
           twitterUserData,
@@ -301,10 +301,10 @@ const calculateEntitySimilarity = (twitterUserId, disqusUserId, callback) => {
 
 exports.calculateEntitySimilarity = calculateEntitySimilarity;
 
-const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, callback) => {
+const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, windowSize, callback) => {
   async.mapSeries(userIdList,
     (twitterUserId, callback) => {
-      calculateEntitySimilarity(twitterUserId, userId, callback);
+      calculateEntitySimilarity(twitterUserId, userId, windowSize, callback);
     }, (err, results) => {
       if (err) {
         callback(err);
