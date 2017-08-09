@@ -10,10 +10,17 @@ const disqusLogic = require('../analysis/disqus');
 const timeParser = require('../parsing/timeParser');
 const mathLogic = require('../math');
 const utils = require('../../utils');
+const bounds = require('binary-search-bounds');
 
 const fileLogic = Promise.promisifyAll(require('../file.js'));
 
 const config = require('../../config');
+
+const filterByDate = (data, s, e) => {
+  const si = bounds.ge(data, { date: s }, (a, b) => a.date >= b.date ? 1 : -1);
+  const ei = bounds.le(data, { date: e }, (a, b) => a.date > b.date ? 1 : -1);
+  return data.slice(si, ei + 1);
+};
 
 const matchEntities = (e1Data, e2Data) => {
   if (e1Data.entity === e2Data.entity) {
@@ -155,21 +162,10 @@ const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime
   const startDate = new Date(startTime.year, startTime.month, startTime.day);
   const endDate = new Date(endTime.year, endTime.month, endTime.day);
 
-  const disqusMentions = disqusData.mentions.filter((m) =>
-    m.date >= startDate && m.date <= endDate
-  );
-
-  const twitterMentions = twitterData.mentions.filter((m) =>
-    m.date >= startDate && m.date <= endDate
-  );
-
-  const twitterPosts = twitterData.posts.filter((m) =>
-    m.date >= startDate && m.date <= endDate
-  );
-
-  const disqusComments = disqusData.posts.filter((m) =>
-    m.date >= startDate && m.date <= endDate
-  );
+  const disqusMentions = filterByDate(disqusData.mentions, startDate, endDate);
+  const twitterMentions = filterByDate(twitterData.mentions, startDate, endDate);
+  const twitterPosts = filterByDate(twitterData.posts, startDate, endDate);
+  const disqusComments = filterByDate(disqusData.posts, startDate, endDate);
 
   if (twitterPosts.length === 0 ||
     disqusComments.length === 0 ||

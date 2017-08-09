@@ -97,7 +97,7 @@ const getData = (collectionName, query, callback) => {
     }
 
     db.collection(collectionName, (err, collection) => {
-      collection.find(query).toArray((error, resultSet) => {
+      collection.find(query).sort({ date: 1 }).toArray((error, resultSet) => {
         if (error) {
           callback(error);
           return;
@@ -203,7 +203,6 @@ const getUserPostsFromDb = (userId, media, startDate, endDate, callback) => {
       $lte: endDate,
     },
   };
-
 
   const collectionName = `${media}Posts`;
   getDataAsync(collectionName, query)

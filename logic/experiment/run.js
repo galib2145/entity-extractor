@@ -7,17 +7,20 @@ const fileLogic = require('../file');
 const sentimentLogic = require('./sentiment');
 const temporalLogic = require('./temporal');
 
-const runExperiment = (numUsers, simFunc, windowSize, outputFileName) => {
+const runExperiment = (numCandidates, numToMatch, simFunc, windowSize, outputFileName) => {
   const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
   const matchingResults = [];
   const errors = [];
   const processStart = new Date();
-  const userIdList = fileLogic.getUserIdList().slice(0, numUsers);
+  const totalUserList = fileLogic.getUserIdList();
+  const candidateList = totalUserList.slice(0, numCandidates);
+  const toMatchList = totalUserList.slice(0, numToMatch);
 
-  async.forEachOfSeries(userIdList, (userId, index, callback) => {
+  async.forEachOfSeries(candidateList, (userId, index, callback) => {
     const startTime = new Date();
-    console.log(`\nStarting matching for : ${userId}`);
-    simFunc(userId, userIdList, windowSize, (err, res) => {
+    console.log(`\nExecuting task: ${index}`);
+    console.log(`Starting matching for : ${userId}`);
+    simFunc(userId, toMatchList, windowSize, (err, res) => {
       if (err) {
         errors.push({
           userId,
@@ -27,8 +30,7 @@ const runExperiment = (numUsers, simFunc, windowSize, outputFileName) => {
         return;
       }
 
-      console.log(`Start time: ${startTime}`);
-      console.log(`End time : ${new Date()}`);
+      console.log(`Diff = ${(new Date().getTime() - startTime.getTime()) /1000}s`);
       matchingResults.push({
         userId,
         res,
@@ -51,23 +53,35 @@ const runExperiment = (numUsers, simFunc, windowSize, outputFileName) => {
       JSON.stringify(matchingResults, null, 2)
     );
 
-    console.log(`\nStart time: ${processStart}`);
-    console.log(`End time : ${new Date()}`);
     console.log('Tasks executed successfully');
   });
 }
 
-prompt.get(['numUsers', 'which', 'windowSize', 'outputFileName'], function(err, result) {
-  const numUsers = parseInt(result.numUsers, 10);
-  const whichExp = parseInt(result.which, 10);
-  const windowSize = parseInt(result.windowSize, 10);
-  const outputFileName = result.outputFileName;
+// prompt.get(['numUsers', 'which', 'windowSize', 'outputFileName'], function(err, result) {
+//   const numUsers = parseInt(result.numUsers, 10);
+//   const whichExp = parseInt(result.which, 10);
+//   const windowSize = parseInt(result.windowSize, 10);
+//   const outputFileName = result.outputFileName;
 
-  let simFunc = temporalLogic.generateEntitySimilarityRankingWithTwitter;
+//   let simFunc = temporalLogic.generateEntitySimilarityRankingWithTwitter;
 
-  if (whichExp === 's') {
-    simFunc = sentimentLogic.generateEntitySimilarityRankingWithTwitter;
-  }
+//   if (whichExp === 's') {
+//     simFunc = sentimentLogic.generateEntitySimilarityRankingWithTwitter;
+//   }
 
-  runExperiment(numUsers, simFunc, windowSize, outputFileName);
-});
+//   runExperiment(numUsers, simFunc, windowSize, outputFileName);
+// });
+
+const numUsers = 1;
+const whichExp = 't'
+const windowSize = 7;
+const outputFileName = 't';
+const numToMatch = 800;
+
+let simFunc = temporalLogic.generateEntitySimilarityRankingWithTwitter;
+
+if (whichExp === 's') {
+  simFunc = sentimentLogic.generateEntitySimilarityRankingWithTwitter;
+}
+
+runExperiment(numUsers, numToMatch, simFunc, windowSize, outputFileName);
