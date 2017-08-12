@@ -27,6 +27,12 @@ const createDBIndexes = (db, callback) => {
   const indexCreationTasks = [
     twitterPostCollection.ensureIndexAsync({ userId: 1 }),
     twitterPostCollection.ensureIndexAsync({ date: 1 }),
+    disqusPostCollection.ensureIndexAsync({ userId: 1 }),
+    disqusPostCollection.ensureIndexAsync({ date: 1 }),
+    disqusEntityMentionCollection.ensureIndexAsync({ userId: 1 }),
+    disqusEntityMentionCollection.ensureIndexAsync({ date: 1 }),
+    twitterEntityMentionCollection.ensureIndexAsync({ userId: 1 }),
+    twitterEntityMentionCollection.ensureIndexAsync({ date: 1 })
   ];
 
   Promise.all(indexCreationTasks)

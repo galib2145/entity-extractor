@@ -4,6 +4,10 @@ const path = require('path');
 const _ = require('lodash');
 const cosineSim = require('cosine-similarity');
 const async = require('async');
+sw = require('stopword');
+
+const disqusLogic = Promise.promisifyAll(require('../analysis/disqus'));
+const twitterLogic = Promise.promisifyAll(require('../analysis/twitter'));
 
 const config = require('../../config');
 const fileLogic = require('../file');
@@ -53,6 +57,37 @@ const getCosineSimilarity = (ud, ut, callback) => {
 
 exports.getCosineSimilarity = getCosineSimilarity;
 
+const getWordListForUserProfile = (userId, media, callback) => {
+  let dataFunc = null;
+  let postTextArray = null;
+  if (media === 'twitter') {
+    dataFunc = twitterLogic.getTwitterPostsAsync;
+  } else {
+    dataFunc = disqusLogic.getDisqusCommentsAsync;
+  }
+
+  dataFunc(userId)
+    .then((posts) => {
+      if (media === 'twitter') {
+        postTextArray = posts.map(p => p.text);
+      } else {
+        postTextArray = posts.map(p => p.post);
+      }
+
+      const wordList = [].concat.apply(
+          [], postTextArray.map((pa) => pa.split(' ')));
+
+      const uniqueWordList = _.uniqBy(wordList, e => e);
+      const fwl = sw.removeStopwords(uniqueWordList);
+      callback(null, fwl);
+    })
+    .catch((err) => {
+      callback(err);
+    });
+};
+
+exports.getWordListForUserProfile = getWordListForUserProfile;
+
 const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, callback) => {
   async.mapSeries(userIdList,
     (twitterUserId, callback) => {
@@ -77,51 +112,6 @@ const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, callback
 
 exports.generateEntitySimilarityRankingWithTwitter = generateEntitySimilarityRankingWithTwitter;
 
-const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
-const matchingResults = [];
-const errors = [];
-
-const processStart = new Date();
-const userIdList = fileLogic.getUserIdList().slice(0, 100);
-async.forEachOfSeries(userIdList, (userId, index, callback) => {
-  const startTime = new Date();
-  console.log(`\nStarting matching for : ${userId}`);
-  generateEntitySimilarityRankingWithTwitter(userId, userIdList, (err, res) => {
-    if (err) {
-      console.log(err);
-      errors.push({
-        userId,
-        err,
-      });
-      callback();
-      return;
-    }
-
-    console.log(`Start time: ${startTime}`);
-    console.log(`End time : ${new Date()}`);
-    matchingResults.push({
-      userId,
-      res,
-    });
-
-    callback();
-  });
-}, (err) => {
-  if (err) {
-    console.log(err.message);
-    return;
-  }
-
-  fs.writeFileSync(
-    path.join(path.join(process.env.HOME, '/res/error-cosine')),
-    JSON.stringify(errors, null, 2)
-  );
-  fs.writeFileSync(
-    path.join(path.join(process.env.HOME, '/res/match-cosine')),
-    JSON.stringify(matchingResults, null, 2)
-  );
-
-  console.log(`\nStart time: ${processStart}`);
-  console.log(`End time : ${new Date()}`);
-  console.log('Tasks executed successfully');
+getWordListForUserProfile('1000_bigyahu', 'disqus', (err, r) => {
+  console.log(r.slice(0, 50));
 });

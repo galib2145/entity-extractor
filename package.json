@@ -21,6 +21,7 @@
     "mongodb": "^2.2.29",
     "prompt": "^1.0.0",
     "querystring": "^0.2.0",
-    "request": "^2.81.0"
+    "request": "^2.81.0",
+    "stopword": "^0.1.6"
   }
 }

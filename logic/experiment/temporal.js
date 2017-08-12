@@ -16,6 +16,25 @@ const fileLogic = Promise.promisifyAll(require('../file.js'));
 
 const config = require('../../config');
 
+const makeUniqueEntityMap = (sortedEntityData) => {
+  let currentDude = {};
+  let uniqueMap = {};
+  for (let i = 0; i < sortedEntityData.length; i++) {
+    if (currentDude.entity === sortedEntityData[i].entity) {
+      uniqueMap[currentDude.entity].count++;
+    } else {
+      uniqueMap[sortedEntityData[i].entity] = {
+        count: 1,
+        data: sortedEntityData[i]
+      }
+
+      currentDude = sortedEntityData[i];
+    }
+  }
+
+  return uniqueMap;
+};
+
 const filterByDate = (data, s, e) => {
   const si = bounds.ge(data, { date: s }, (a, b) => a.date >= b.date ? 1 : -1);
   const ei = bounds.le(data, { date: e }, (a, b) => a.date > b.date ? 1 : -1);
@@ -27,15 +46,15 @@ const matchEntities = (e1Data, e2Data) => {
     return true;
   }
 
-  if (e1Data.details && e2Data.details) {
-    const subTypeMatches = utils.intersect(
-      e1Data.details.subType,
-      e2Data.details.subType
-    );
-    if (e1Data.type === e2Data.type && subTypeMatches.length > 0) {
-      return true;
-    }
-  }
+  // if (e1Data.details && e2Data.details) {
+  //   const subTypeMatches = utils.intersect(
+  //     e1Data.details.subType,
+  //     e2Data.details.subType
+  //   );
+  //   if (e1Data.type === e2Data.type && subTypeMatches.length > 0) {
+  //     return true;
+  //   }
+  // }
 
   return false;
 };
@@ -75,10 +94,9 @@ const getTwitterTimeRange = (userId, callback) => {
   twitterLogic.getTwitterPostsAsync(userId)
     .then((twitterPosts) => {
       const postTimes = twitterPosts.map(post => timeParser.parseTimeString(post.time));
-      const postTimesSorted = postTimes.sort(compareTime);
       const timeInfo = {
-        start: postTimesSorted[0],
-        end: postTimesSorted[postTimesSorted.length - 1],
+        start: postTimes[postTimes.length - 1],
+        end: postTimes[0]
       };
 
       callback(null, timeInfo);
@@ -90,10 +108,9 @@ const getDisqusTimeRange = (userId, callback) => {
   disqusLogic.getDisqusCommentsAsync(userId)
     .then((disqusComments) => {
       const postTimes = disqusComments.map(post => timeParser.parseTimeString(post.time));
-      const postTimesSorted = postTimes.sort(compareTime);
       const timeInfo = {
-        start: postTimesSorted[0],
-        end: postTimesSorted[postTimesSorted.length - 1],
+        start: postTimes[postTimes.length - 1],
+        end: postTimes[0]
       };
 
       callback(null, timeInfo);
@@ -166,6 +183,13 @@ const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime
   const twitterMentions = filterByDate(twitterData.mentions, startDate, endDate);
   const twitterPosts = filterByDate(twitterData.posts, startDate, endDate);
   const disqusComments = filterByDate(disqusData.posts, startDate, endDate);
+  
+  disqusMentions.sort((a, b) => {
+    return a.entity.localeCompare(b.entity);
+  });
+  twitterMentions.sort((a, b) => {
+    return a.entity.localeCompare(b.entity);
+  });
 
   if (twitterPosts.length === 0 ||
     disqusComments.length === 0 ||
@@ -174,15 +198,18 @@ const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime
     return 0;
   }
 
+  // let uniqueDisqusMentions = makeUniqueEntityMap(disqusMentions);
+  // let uniqueTwitterMentions = makeUniqueEntityMap(twitterMentions);
+
   let uniqueDisqusMentions = {};
-  disqusMentions.map(function(a) {
+  disqusMentions.map((a) => {
     if (a.entity in uniqueDisqusMentions) uniqueDisqusMentions[a.entity].count++;
     else uniqueDisqusMentions[a.entity] = {
       count: 1,
       data: a,
     }
   });
-
+  
   let uniqueTwitterMentions = {};
   twitterMentions.map(function(a) {
     if (a.entity in uniqueTwitterMentions) uniqueTwitterMentions[a.entity].count++;

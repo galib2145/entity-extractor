@@ -72,11 +72,11 @@ const runExperiment = (numCandidates, numToMatch, simFunc, windowSize, outputFil
 //   runExperiment(numUsers, simFunc, windowSize, outputFileName);
 // });
 
-const numUsers = 1;
+const numUsers = 100;
 const whichExp = 't'
 const windowSize = 7;
-const outputFileName = 't';
-const numToMatch = 800;
+const outputFileName = '100-100-7';
+const numToMatch = 100;
 
 let simFunc = temporalLogic.generateEntitySimilarityRankingWithTwitter;
 
