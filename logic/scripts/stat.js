@@ -3,7 +3,7 @@ const fs = Promise.promisifyAll(require('fs'));
 const path = require('path');
 
 const getGraphDataFromResult = (callback) => {
-  const resFilePath = path.join(process.env.HOME, '/res/match-100-100-7');
+  const resFilePath = path.join(process.env.HOME, '/res/match-100-100-4');
   fs.readFileAsync(resFilePath)
     .then((fileContent) => {
       const resultData = JSON.parse(fileContent);
@@ -24,11 +24,7 @@ const getGraphDataFromResult = (callback) => {
     });;
 };
 
-// getGraphDataFromResult((err, res) => {
-//   console.log(res);match-t-100-30
-// })
-
-const resFilePath = path.join(process.env.HOME, '/res/match');
+const resFilePath = path.join(process.env.HOME, '/res/match-c-100-100');
 fs.readFileAsync(resFilePath)
   .then((fileContent) => {
     const resultList = JSON.parse(fileContent);

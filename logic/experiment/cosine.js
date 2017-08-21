@@ -37,27 +37,7 @@ const getCosineSimilarityByEntities = (u1Entities, u2Entities) => {
   return cosineSim(u1Vector, u2Vector);
 };
 
-const getCosineSimilarity = (ud, ut, callback) => {
-  const entityDataTasks = [
-    genericLogic.getEntitiesForUserAsync(ud, 'disqus'),
-    genericLogic.getEntitiesForUserAsync(ut, 'twitter'),
-  ];
-
-  Promise.all(entityDataTasks)
-    .then((results) => {
-      const dE = results[0];
-      const tE = results[1];
-      const sim = getCosineSimilarityByEntities(dE, tE);
-      callback(null, sim);
-    })
-    .catch((err) => {
-      callback(err);
-    });
-};
-
-exports.getCosineSimilarity = getCosineSimilarity;
-
-const getWordListForUserProfile = (userId, media, callback) => {
+const makeWordListForUserProfile = (userId, media, callback) => {
   let dataFunc = null;
   let postTextArray = null;
   if (media === 'twitter') {
@@ -86,9 +66,63 @@ const getWordListForUserProfile = (userId, media, callback) => {
     });
 };
 
-exports.getWordListForUserProfile = getWordListForUserProfile;
+exports.makeWordListForUserProfile = makeWordListForUserProfile;
 
-const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, callback) => {
+const saveWordListForUserProfile = (userId, media, callback) => {
+  const getWordListForUserProfileAsync = 
+    Promise.promisify(makeWordListForUserProfile);
+  const outDir = path.join(process.env.HOME, 'entity-analysis-2');
+  const outPath = `${outDir}/${userId}/${media}-words`;
+  getWordListForUserProfileAsync(userId, media)
+    .then((wordList) => {
+      const str = JSON.stringify(wordList, null, 2);
+      return fs.writeFileAsync(outPath, str);
+    })
+    .then(() => callback())
+    .catch((err) => {
+      callback(err);
+    });
+};
+
+exports.saveWordListForUserProfile = saveWordListForUserProfile;
+
+const getWordListForUserProfile = (userId, media, callback) => {
+  const outDir = path.join(process.env.HOME, 'entity-analysis-2');
+  const wordFilePath = `${outDir}/${userId}/${media}-words`;
+  fs.readFileAsync(wordFilePath)
+    .then((str) => {
+      const wordList = JSON.parse(str);
+      callback(null, wordList);
+    })
+    .catch((err) => {
+      callback(err);
+    });
+};
+
+const getCosineSimilarity = (ud, ut, callback) => {
+  const getWordListForUserProfileAsync = 
+    Promise.promisify(makeWordListForUserProfile);
+
+  const entityDataTasks = [
+    getWordListForUserProfileAsync(ud, 'disqus'),
+    getWordListForUserProfileAsync(ut, 'twitter'),
+  ];
+
+  Promise.all(entityDataTasks)
+    .then((results) => {
+      const dE = results[0];
+      const tE = results[1];
+      const sim = getCosineSimilarityByEntities(dE, tE);
+      callback(null, sim);
+    })
+    .catch((err) => {
+      callback(err);
+    });
+};
+
+exports.getCosineSimilarity = getCosineSimilarity;
+
+const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, windowSize, callback) => {
   async.mapSeries(userIdList,
     (twitterUserId, callback) => {
       getCosineSimilarity(userId, twitterUserId, callback);
@@ -112,6 +146,6 @@ const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, callback
 
 exports.generateEntitySimilarityRankingWithTwitter = generateEntitySimilarityRankingWithTwitter;
 
-getWordListForUserProfile('1000_bigyahu', 'disqus', (err, r) => {
-  console.log(r.slice(0, 50));
-});
+// getCosineSimilarity('1000_bigyahu', '1000_bigyahu', (err, r) => {console.log(r)});
+
+// saveWordListForUserProfile('1000_bigyahu', 'twitter', () => {});
