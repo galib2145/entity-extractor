@@ -24,7 +24,7 @@ const getGraphDataFromResult = (callback) => {
     });;
 };
 
-const resFilePath = path.join(process.env.HOME, '/res/match-c-100-100');
+const resFilePath = path.join(process.env.HOME, '/res/match-t-100-whole');
 fs.readFileAsync(resFilePath)
   .then((fileContent) => {
     const resultList = JSON.parse(fileContent);

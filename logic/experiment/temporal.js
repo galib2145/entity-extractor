@@ -183,7 +183,7 @@ const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime
   const twitterMentions = filterByDate(twitterData.mentions, startDate, endDate);
   const twitterPosts = filterByDate(twitterData.posts, startDate, endDate);
   const disqusComments = filterByDate(disqusData.posts, startDate, endDate);
-  
+
   disqusMentions.sort((a, b) => {
     return a.entity.localeCompare(b.entity);
   });
@@ -198,26 +198,26 @@ const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime
     return 0;
   }
 
-  // let uniqueDisqusMentions = makeUniqueEntityMap(disqusMentions);
-  // let uniqueTwitterMentions = makeUniqueEntityMap(twitterMentions);
+  let uniqueDisqusMentions = makeUniqueEntityMap(disqusMentions);
+  let uniqueTwitterMentions = makeUniqueEntityMap(twitterMentions);
 
-  let uniqueDisqusMentions = {};
-  disqusMentions.map((a) => {
-    if (a.entity in uniqueDisqusMentions) uniqueDisqusMentions[a.entity].count++;
-    else uniqueDisqusMentions[a.entity] = {
-      count: 1,
-      data: a,
-    }
-  });
-  
-  let uniqueTwitterMentions = {};
-  twitterMentions.map(function(a) {
-    if (a.entity in uniqueTwitterMentions) uniqueTwitterMentions[a.entity].count++;
-    else uniqueTwitterMentions[a.entity] = {
-      count: 1,
-      data: a,
-    }
-  });
+  // let uniqueDisqusMentions = {};
+  // disqusMentions.map((a) => {
+  //   if (a.entity in uniqueDisqusMentions) uniqueDisqusMentions[a.entity].count++;
+  //   else uniqueDisqusMentions[a.entity] = {
+  //     count: 1,
+  //     data: a,
+  //   }
+  // });
+
+  // let uniqueTwitterMentions = {};
+  // twitterMentions.map(function(a) {
+  //   if (a.entity in uniqueTwitterMentions) uniqueTwitterMentions[a.entity].count++;
+  //   else uniqueTwitterMentions[a.entity] = {
+  //     count: 1,
+  //     data: a,
+  //   }
+  // });
 
   const entityIntersection = getEntityMentionIntersection(uniqueDisqusMentions, uniqueTwitterMentions);
   if (entityIntersection.length === 0) {
@@ -287,6 +287,15 @@ const getTimeSlotsByDays = (timeRange, numDays) => {
   let windowStart = startTime;
   const timeSlots = [];
 
+  if (numDays === 0) {
+    timeSlots.push({
+      windowStart: startTime,
+      windowEnd: endTime,
+    });
+
+    return timeSlots;
+  }
+
   for (;;) {
     let windowEnd = addDays(windowStart, numDays);
     let endFlag = false;
@@ -310,6 +319,46 @@ const getTimeSlotsByDays = (timeRange, numDays) => {
 };
 
 exports.getTimeSlotsByDays = getTimeSlotsByDays;
+
+const getOverlappingTimeSlotsByDays = (timeRange, numDays) => {
+  const startTime = timeRange.startTime;
+  const endTime = timeRange.endTime;
+  let windowStart = startTime;
+  const timeSlots = [];
+
+  if (numDays === 0) {
+    timeSlots.push({
+      windowStart: startTime,
+      windowEnd: endTime,
+    });
+
+    return timeSlots;
+  }
+
+  for (;;) {
+    let windowEnd = addDays(windowStart, numDays);
+    let endFlag = false;
+    if (compareTime(windowEnd, endTime) > 0) {
+      windowEnd = endTime;
+      endFlag = true;
+    }
+
+    timeSlots.push({
+      windowStart,
+      windowEnd,
+    });
+
+    if (endFlag) {
+      break;
+    } else {
+      windowStart = addDays(windowStart, Math.round(numDays / 2));
+    }
+  }
+
+  return timeSlots;
+};
+
+exports.getOverlappingTimeSlotsByDays = getOverlappingTimeSlotsByDays;
 
 const calculateEntitySimilarity = (twitterUserId, disqusUserId, windowSize, callback) => {
   const getAnalysisTimeRangeAsync = Promise.promisify(getAnalysisTimeRange);
