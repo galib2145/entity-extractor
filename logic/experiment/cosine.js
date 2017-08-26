@@ -14,27 +14,27 @@ const fileLogic = require('../file');
 
 const genericLogic = Promise.promisifyAll(require('../analysis/generic'));
 
-const getCosineSimilarityByEntities = (u1Entities, u2Entities) => {
-  const entityUnion = u1Entities.concat(u2Entities);
-  const featureSet = _.uniqBy(entityUnion, (e) => e);
+const getCosineSimilarityByStrArrays = (strArray1, strArray2) => {
+  const union = strArray1.concat(strArray2);
+  const featureSet = _.uniqBy(union, (e) => e);
 
-  const u1Vector = featureSet.map((feature) => {
-    if (u1Entities.includes(feature)) {
+  const vector1 = featureSet.map((feature) => {
+    if (strArray1.includes(feature)) {
       return 1;
     }
 
     return 0;
   });
 
-  const u2Vector = featureSet.map((feature) => {
-    if (u2Entities.includes(feature)) {
+  const vector2 = featureSet.map((feature) => {
+    if (strArray2.includes(feature)) {
       return 1;
     }
 
     return 0;
   });
 
-  return cosineSim(u1Vector, u2Vector);
+  return cosineSim(vector1, vector2);
 };
 
 const makeWordListForUserProfile = (userId, media, callback) => {
@@ -69,11 +69,11 @@ const makeWordListForUserProfile = (userId, media, callback) => {
 exports.makeWordListForUserProfile = makeWordListForUserProfile;
 
 const saveWordListForUserProfile = (userId, media, callback) => {
-  const getWordListForUserProfileAsync = 
+  const makeWordListForUserProfileAsync = 
     Promise.promisify(makeWordListForUserProfile);
   const outDir = path.join(process.env.HOME, 'entity-analysis-2');
   const outPath = `${outDir}/${userId}/${media}-words`;
-  getWordListForUserProfileAsync(userId, media)
+  makeWordListForUserProfileAsync(userId, media)
     .then((wordList) => {
       const str = JSON.stringify(wordList, null, 2);
       return fs.writeFileAsync(outPath, str);
@@ -101,7 +101,7 @@ const getWordListForUserProfile = (userId, media, callback) => {
 
 const getCosineSimilarity = (ud, ut, callback) => {
   const getWordListForUserProfileAsync = 
-    Promise.promisify(makeWordListForUserProfile);
+    Promise.promisify(getWordListForUserProfile);
 
   const entityDataTasks = [
     getWordListForUserProfileAsync(ud, 'disqus'),
@@ -112,7 +112,7 @@ const getCosineSimilarity = (ud, ut, callback) => {
     .then((results) => {
       const dE = results[0];
       const tE = results[1];
-      const sim = getCosineSimilarityByEntities(dE, tE);
+      const sim = getCosineSimilarityByStrArrays(dE, tE);
       callback(null, sim);
     })
     .catch((err) => {

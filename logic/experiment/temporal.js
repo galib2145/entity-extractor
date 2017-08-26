@@ -374,7 +374,7 @@ const calculateEntitySimilarity = (twitterUserId, disqusUserId, windowSize, call
     .then((results) => {
       const twitterUserData = results[0];
       const disqusUserData = results[1];
-      const timeSlots = getTimeSlotsByDays(analysisTimeRange, windowSize);
+      const timeSlots = getOverlappingTimeSlotsByDays(analysisTimeRange, windowSize);
       const simList = timeSlots.map((timeSlot) => {
         return calculateEntitySimilarityOnTimeRange(
           twitterUserData,
