@@ -109,7 +109,7 @@ const getDisqusTopicIntersectionData = () => {
   });
 
   const percentPlot = [];
-  for (let i = 1; i <= 100; i++) {
+  for (let i = 1; i <= 1900; i++) {
     const numResults = (intersectionArray.filter((e) =>
       e.percentage > i)).length;
     percentPlot.push({
@@ -122,3 +122,7 @@ const getDisqusTopicIntersectionData = () => {
 };
 
 exports.getDisqusTopicIntersectionData = getDisqusTopicIntersectionData;
+
+const data = getDisqusTopicIntersectionData();
+fs.writeFileSync('/home/saad/intersection-graph', JSON.stringify(data, null, 2));
+console.log('Done');

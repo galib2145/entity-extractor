@@ -8,7 +8,6 @@ const instance = null;
 
 const utils = require('../utils');
 
-
 const genericLogic = Promise.promisifyAll(require('./analysis/generic'));
 const fileLogic = require('./file');
 const twitterAnalysisLogic = Promise.promisifyAll(require('./analysis/twitter'));
@@ -29,10 +28,8 @@ const createDBIndexes = (db, callback) => {
     twitterPostCollection.ensureIndexAsync({ date: 1 }),
     disqusPostCollection.ensureIndexAsync({ userId: 1 }),
     disqusPostCollection.ensureIndexAsync({ date: 1 }),
-    disqusEntityMentionCollection.ensureIndexAsync({ userId: 1 }),
-    disqusEntityMentionCollection.ensureIndexAsync({ date: 1 }),
-    twitterEntityMentionCollection.ensureIndexAsync({ userId: 1 }),
-    twitterEntityMentionCollection.ensureIndexAsync({ date: 1 })
+    disqusEntityMentionCollection.ensureIndexAsync({ userId: 1, date: 1 }),
+    twitterEntityMentionCollection.ensureIndexAsync({ userId: 1, date: 1 })
   ];
 
   Promise.all(indexCreationTasks)
@@ -188,6 +185,11 @@ const saveUserPosts = (userId, media, callback) => {
         const postDate = new Date(intrTime.year, intrTime.month, intrTime.day);
         post.date = postDate;
         post.userId = userId;
+        if (post.post) {
+          post.wordList = utils.getUniqueWordListFromStr(post.post);
+        } else {
+          post.wordList = utils.getUniqueWordListFromStr(post.text);
+        }
         return post;
       });
       return saveDataAsync(`${media}Posts`, formattedPosts);

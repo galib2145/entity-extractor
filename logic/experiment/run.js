@@ -23,6 +23,7 @@ const runExperiment = (numCandidates, numToMatch, simFunc, windowSize, outputFil
     console.log(`Starting matching for : ${userId}`);
     simFunc(userId, toMatchList, windowSize, (err, res) => {
       if (err) {
+        console.log(err);
         errors.push({
           userId,
           err,
@@ -58,40 +59,40 @@ const runExperiment = (numCandidates, numToMatch, simFunc, windowSize, outputFil
   });
 }
 
-prompt.get(['numUsers', 'which', 'windowSize', 'numToMatch', 'outputFileName'], function (err, result) {
-  const numUsers = parseInt(result.numUsers, 10);
-  const whichExp = result.which;
-  const windowSize = parseInt(result.windowSize, 10);
-  const outputFileName = result.outputFileName;
-  const numToMatch = parseInt(result.numToMatch, 10);
+// prompt.get(['numUsers', 'which', 'windowSize', 'numToMatch', 'outputFileName'], function (err, result) {
+//   const numUsers = parseInt(result.numUsers, 10);
+//   const whichExp = result.which;
+//   const windowSize = parseInt(result.windowSize, 10);
+//   const outputFileName = result.outputFileName;
+//   const numToMatch = parseInt(result.numToMatch, 10);
 
-  let simFunc = temporalLogic.generateEntitySimilarityRankingWithTwitter;
+//   let simFunc = temporalLogic.generateEntitySimilarityRankingWithTwitter;
 
-  if (whichExp === 's') {
-    simFunc = sentimentLogic.generateEntitySimilarityRankingWithTwitter;
-  }
+//   if (whichExp === 's') {
+//     simFunc = sentimentLogic.generateEntitySimilarityRankingWithTwitter;
+//   }
 
-  if (whichExp === 'c') {
-    simFunc = cosineLogic.generateEntitySimilarityRankingWithTwitter;
-  }
+//   if (whichExp === 'c') {
+//     simFunc = cosineLogic.generateEntitySimilarityRankingWithTwitter;
+//   }
 
-  runExperiment(numUsers, numToMatch, simFunc, windowSize, outputFileName);
-});
+//   runExperiment(numUsers, numToMatch, simFunc, windowSize, outputFileName);
+// });
 
-// const numUsers = 100;
-// const whichExp = 't'
-// const windowSize = 0;
-// const outputFileName = '100-100-18';
-// const numToMatch = 100;
+const numUsers = 1;
+const whichExp = 't'
+const windowSize = 7;
+const outputFileName = 'test';
+const numToMatch = 1900;
 
-// let simFunc = temporalLogic.generateEntitySimilarityRankingWithTwitter;
+let simFunc = temporalLogic.generateEntitySimilarityRankingWithTwitter;
 
-// if (whichExp === 's') {
-//   simFunc = sentimentLogic.generateEntitySimilarityRankingWithTwitter;
-// }
+if (whichExp === 's') {
+  simFunc = sentimentLogic.generateEntitySimilarityRankingWithTwitter;
+}
 
-// if (whichExp === 'c') {
-//   simFunc = cosineLogic.generateEntitySimilarityRankingWithTwitter;
-// }
+if (whichExp === 'c') {
+  simFunc = cosineLogic.generateEntitySimilarityRankingWithTwitter;
+}
 
-// runExperiment(numUsers, numToMatch, simFunc, windowSize, outputFileName);
+runExperiment(numUsers, numToMatch, simFunc, windowSize, outputFileName);

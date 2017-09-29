@@ -69,7 +69,7 @@ const getEntityDataForUser = (userId, media, callback) => {
     })
     .catch(err => callback(err));
 };
-
+               
 exports.getEntityDataForUser = getEntityDataForUser;
 
 const getEntitiesForUser = (userId, media, callback) => {

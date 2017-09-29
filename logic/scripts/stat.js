@@ -3,7 +3,7 @@ const fs = Promise.promisifyAll(require('fs'));
 const path = require('path');
 
 const getGraphDataFromResult = (callback) => {
-  const resFilePath = path.join(process.env.HOME, '/res/match-t-100-100-16-overlapped');
+  const resFilePath = path.join(process.env.HOME, '/res/match-whole-ov-100');
   fs.readFileAsync(resFilePath)
     .then((fileContent) => {
       const resultData = JSON.parse(fileContent);
@@ -24,7 +24,7 @@ const getGraphDataFromResult = (callback) => {
     });;
 };
 
-const resFilePath = path.join(process.env.HOME, '/res/match-t-100-100-32-overlapped');
+const resFilePath = path.join(process.env.HOME, '/res/match-sentiment-2');
 fs.readFileAsync(resFilePath)
   .then((fileContent) => {
     const resultList = JSON.parse(fileContent);

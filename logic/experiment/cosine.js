@@ -4,7 +4,11 @@ const path = require('path');
 const _ = require('lodash');
 const cosineSim = require('cosine-similarity');
 const async = require('async');
-sw = require('stopword');
+const temporal = require('./temporal');
+const utils = require('../../utils');
+const sw = require('stopword');
+
+const dbLogic = Promise.promisifyAll(require('../db.js'));
 
 const disqusLogic = Promise.promisifyAll(require('../analysis/disqus'));
 const twitterLogic = Promise.promisifyAll(require('../analysis/twitter'));
@@ -99,35 +103,76 @@ const getWordListForUserProfile = (userId, media, callback) => {
     });
 };
 
-const getCosineSimilarity = (ud, ut, callback) => {
-  const getWordListForUserProfileAsync = 
-    Promise.promisify(getWordListForUserProfile);
+const getCosineSimilarityByTimeRange = (twitterPosts, disqusComments, startTime, endTime) => {
+  const startDate = new Date(startTime.year, startTime.month, startTime.day);
+  const endDate = new Date(endTime.year, endTime.month, endTime.day);
 
-  const entityDataTasks = [
-    getWordListForUserProfileAsync(ud, 'disqus'),
-    getWordListForUserProfileAsync(ut, 'twitter'),
-  ];
+  const twitterPostsForTimeRange = temporal.filterByDate(twitterPosts, startDate, endDate);
+  const disqusCommentsForTimeRange = temporal.filterByDate(disqusComments, startDate, endDate);
 
-  Promise.all(entityDataTasks)
+  let twitterWordList = [];
+  twitterPostsForTimeRange.forEach((p) => {
+    twitterWordList = twitterWordList.concat(p.wordList);
+  });
+
+  let disqusWordList = [];
+  disqusCommentsForTimeRange.forEach((p) => {
+    disqusWordList = disqusWordList.concat(p.wordList);
+  });
+
+  return getCosineSimilarityByStrArrays(disqusWordList, twitterWordList);
+};
+
+exports.getCosineSimilarityByTimeRange = getCosineSimilarityByTimeRange;
+
+const calculateCosineSimilarity = (twitterUserId, disqusUserId, windowSize, callback) => {
+  const getAnalysisTimeRangeAsync = Promise.promisify(temporal.getAnalysisTimeRange);
+  let analysisTimeRange = null;
+  temporal.getAnalysisTimeRangeAsync(twitterUserId, disqusUserId)
+    .then((timeRange) => {
+      analysisTimeRange = timeRange;
+      const startDate = utils.getDateFromTime(timeRange.startTime);
+      const endDate = utils.getDateFromTime(timeRange.endTime);
+      return Promise.all([
+        dbLogic.getUserPostsFromDbAsync(twitterUserId, 'twitter', startDate, endDate),
+        dbLogic.getUserPostsFromDbAsync(disqusUserId, 'disqus', startDate, endDate),
+      ]);
+    })
     .then((results) => {
-      const dE = results[0];
-      const tE = results[1];
-      const sim = getCosineSimilarityByStrArrays(dE, tE);
-      callback(null, sim);
+      const twitterPosts = results[0];
+      const disqusPosts = results[1];
+      const timeSlots = temporal.getOverlappingTimeSlotsByDays(analysisTimeRange, windowSize);
+      const simList = timeSlots.map((timeSlot) => {
+        return getCosineSimilarityByTimeRange(
+          twitterPosts,
+          disqusPosts,
+          timeSlot.windowStart,
+          timeSlot.windowEnd
+        );
+      });
+
+      const nonzeroes = simList.filter(r => r > 0);
+      const sum = nonzeroes.reduce((prevVal, elem) => prevVal + elem, 0);
+      const avg = sum / simList.length;
+
+      callback(null, avg);
     })
     .catch((err) => {
       callback(err);
+      return;
     });
+
 };
 
-exports.getCosineSimilarity = getCosineSimilarity;
+exports.calculateCosineSimilarity = calculateCosineSimilarity;
 
 const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, windowSize, callback) => {
   async.mapSeries(userIdList,
     (twitterUserId, callback) => {
-      getCosineSimilarity(userId, twitterUserId, callback);
+      calculateCosineSimilarity(twitterUserId, userId, windowSize, callback);
     }, (err, results) => {
       if (err) {
+        console.log(err);
         callback(err);
         return;
       }
@@ -145,7 +190,3 @@ const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, windowSi
 };
 
 exports.generateEntitySimilarityRankingWithTwitter = generateEntitySimilarityRankingWithTwitter;
-
-// getCosineSimilarity('1000_bigyahu', '1000_bigyahu', (err, r) => {console.log(r)});
-
-// saveWordListForUserProfile('1000_bigyahu', 'twitter', () => {});

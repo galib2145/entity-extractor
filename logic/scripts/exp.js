@@ -6,7 +6,7 @@ const async = require('async');
 const sentimentLogic = require('../experiment/sentiment');
 
 const getRunDataFromTemporalResult = (callback) => {
-  const dir = `/res/match`;
+  const dir = `/res/match-t-100-100-7-overlapped`;
   const filePath = path.join(process.env.HOME, dir);
   fs.readFileAsync(filePath)
     .then((fileContent) => {
@@ -14,7 +14,8 @@ const getRunDataFromTemporalResult = (callback) => {
       const dataForRun = resultData.map((r) => {
         const userData = {};
         userData.id = r.userId;
-        userData.matchCandidates = r.res.slice(0, 20).map(c => c.user);
+        const userIndex = r.res.findIndex(c => c.user === r.userId);
+        userData.matchCandidates = r.res.slice(0, userIndex + 1).map(u => u.user);
         return userData;
       });
       callback(null, dataForRun);
@@ -34,7 +35,7 @@ getRunDataFromTemporalResultAsync()
       const userList = r.matchCandidates;
       console.log(`\nStarting matching for : ${userId}`);
       console.log(`Start time: ${new Date()}`);
-      sentimentLogic.generateEntitySimilarityRankingWithTwitter(userId, userList, (err, res) => {
+      sentimentLogic.generateEntitySimilarityRankingWithTwitter(userId, userList, 7, (err, res) => {
         if (err) {
           console.log(err);
           errors.push({

@@ -15,6 +15,7 @@ const bounds = require('binary-search-bounds');
 const fileLogic = Promise.promisifyAll(require('../file.js'));
 
 const config = require('../../config');
+const precompute = require('../analysis/precompute');
 
 const makeUniqueEntityMap = (sortedEntityData) => {
   let currentDude = {};
@@ -35,43 +36,23 @@ const makeUniqueEntityMap = (sortedEntityData) => {
   return uniqueMap;
 };
 
+exports.makeUniqueEntityMap = makeUniqueEntityMap;
+
 const filterByDate = (data, s, e) => {
   const si = bounds.ge(data, { date: s }, (a, b) => a.date >= b.date ? 1 : -1);
   const ei = bounds.le(data, { date: e }, (a, b) => a.date > b.date ? 1 : -1);
   return data.slice(si, ei + 1);
 };
 
-const matchEntities = (e1Data, e2Data) => {
-  if (e1Data.entity === e2Data.entity) {
-    return true;
-  }
-
-  // if (e1Data.details && e2Data.details) {
-  //   const subTypeMatches = utils.intersect(
-  //     e1Data.details.subType,
-  //     e2Data.details.subType
-  //   );
-  //   if (e1Data.type === e2Data.type && subTypeMatches.length > 0) {
-  //     return true;
-  //   }
-  // }
-
-  return false;
-};
-
 const getEntityMentionIntersection = (disqusMentions, twitterMentions) => {
   let intersection = [];
   for (let disqusEntry in disqusMentions) {
-    for (let twitterEntry in twitterMentions) {
-      const dEd = disqusMentions[disqusEntry].data;
-      const tED = twitterMentions[twitterEntry].data;
-      if (matchEntities(dEd, tED)) {
-        intersection.push({
-          entity: disqusEntry,
-          disqusMentionCount: disqusMentions[disqusEntry].count,
-          twitterMentionCount: twitterMentions[twitterEntry].count,
-        });
-      }
+    if (twitterMentions[disqusEntry]) {
+      intersection.push({
+        entity: disqusEntry,
+        disqusMentionCount: disqusMentions[disqusEntry].count,
+        twitterMentionCount: twitterMentions[disqusEntry].count,
+      });
     }
   }
 
@@ -118,6 +99,8 @@ const getDisqusTimeRange = (userId, callback) => {
     .catch((err) => callback(err));
 };
 
+exports.getDisqusTimeRange = getDisqusTimeRange;
+
 const addDays = (startDate, windowSize) => {
   let interDate = new Date(startDate.year, startDate.month - 1, startDate.day + 1);
   interDate.setDate(interDate.getDate() + windowSize);
@@ -154,6 +137,45 @@ const getAnalysisTimeRange = (twitterUserId, disqusUserId, callback) => {
 
 exports.getAnalysisTimeRange = getAnalysisTimeRange;
 
+const doesTimeRangesOverlap = (disqusTimeRange, twitterTimeRange) => {
+   const r1 = compareTime(disqusTimeRange.start, twitterTimeRange.end);
+   const r2 = compareTime(twitterTimeRange.start, disqusTimeRange.end);
+
+   if (r1 > 0 || r2 > 0) {
+     return false;
+   }
+
+   return true;   
+};
+
+const getAnalysisTimeRangeGivenDisqus = (twitterUserId, disqusTimeRange, callback) => {
+  const getTwitterTimeRangeAsync = Promise.promisify(getTwitterTimeRange);
+  getTwitterTimeRangeAsync(twitterUserId)
+    .then((twitterTimeRange) => {
+      // console.log(disqusTimeRange);
+      // console.log(twitterTimeRange);
+      const doesOverlap = doesTimeRangesOverlap(disqusTimeRange, twitterTimeRange);
+      if (!doesOverlap) {
+        // console.log('The two timelines do not overlap\n');
+        callback(null, null);
+        return;
+      }
+
+
+      const timeRange = {
+        startTime: compareTime(disqusTimeRange.start, twitterTimeRange.start) > 0 ?
+          disqusTimeRange.start : twitterTimeRange.start,
+        endTime: compareTime(disqusTimeRange.end, twitterTimeRange.end) > 0 ?
+          twitterTimeRange.end : disqusTimeRange.end,
+      };
+
+      // console.log(timeRange);
+      // console.log('\n\n');
+      callback(null, timeRange);
+    })
+    .catch((err) => callback(err));
+};
+
 const filterUserDataByTimeSlot = (userData, timeSlot) => {
   const startTime = timeSlot.windowStart;
   const endTime = timeSlot.windowEnd;
@@ -187,6 +209,7 @@ const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime
   disqusMentions.sort((a, b) => {
     return a.entity.localeCompare(b.entity);
   });
+
   twitterMentions.sort((a, b) => {
     return a.entity.localeCompare(b.entity);
   });
@@ -200,24 +223,6 @@ const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime
 
   let uniqueDisqusMentions = makeUniqueEntityMap(disqusMentions);
   let uniqueTwitterMentions = makeUniqueEntityMap(twitterMentions);
-
-  // let uniqueDisqusMentions = {};
-  // disqusMentions.map((a) => {
-  //   if (a.entity in uniqueDisqusMentions) uniqueDisqusMentions[a.entity].count++;
-  //   else uniqueDisqusMentions[a.entity] = {
-  //     count: 1,
-  //     data: a,
-  //   }
-  // });
-
-  // let uniqueTwitterMentions = {};
-  // twitterMentions.map(function(a) {
-  //   if (a.entity in uniqueTwitterMentions) uniqueTwitterMentions[a.entity].count++;
-  //   else uniqueTwitterMentions[a.entity] = {
-  //     count: 1,
-  //     data: a,
-  //   }
-  // });
 
   const entityIntersection = getEntityMentionIntersection(uniqueDisqusMentions, uniqueTwitterMentions);
   if (entityIntersection.length === 0) {
@@ -296,7 +301,7 @@ const getTimeSlotsByDays = (timeRange, numDays) => {
     return timeSlots;
   }
 
-  for (;;) {
+  for (; ;) {
     let windowEnd = addDays(windowStart, numDays);
     let endFlag = false;
     if (compareTime(windowEnd, endTime) > 0) {
@@ -335,7 +340,7 @@ const getOverlappingTimeSlotsByDays = (timeRange, numDays) => {
     return timeSlots;
   }
 
-  for (;;) {
+  for (; ;) {
     let windowEnd = addDays(windowStart, numDays);
     let endFlag = false;
     if (compareTime(windowEnd, endTime) > 0) {
@@ -360,25 +365,28 @@ const getOverlappingTimeSlotsByDays = (timeRange, numDays) => {
 
 exports.getOverlappingTimeSlotsByDays = getOverlappingTimeSlotsByDays;
 
-const calculateEntitySimilarity = (twitterUserId, disqusUserId, windowSize, callback) => {
-  const getAnalysisTimeRangeAsync = Promise.promisify(getAnalysisTimeRange);
+const calculateEntitySimilarity = (twitterUserId, disqusData, windowSize, callback) => {
+  const getAnalysisTimeRangeGivenDisqusAsync = Promise.promisify(getAnalysisTimeRangeGivenDisqus);
   let analysisTimeRange = null;
-  getAnalysisTimeRangeAsync(twitterUserId, disqusUserId)
+  getAnalysisTimeRangeGivenDisqusAsync(twitterUserId, disqusData.timeRange)
     .then((timeRange) => {
       analysisTimeRange = timeRange;
-      return Promise.all([
-        dbLogic.getUserDataForTimeRangeAsync(twitterUserId, 'twitter', timeRange),
-        dbLogic.getUserDataForTimeRangeAsync(disqusUserId, 'disqus', timeRange),
-      ]);
+      if (!analysisTimeRange) {
+        return null;
+      }
+      return dbLogic.getUserDataForTimeRangeAsync(twitterUserId, 'twitter', timeRange);
     })
-    .then((results) => {
-      const twitterUserData = results[0];
-      const disqusUserData = results[1];
+    .then((twitterUserData) => {
+      if (!analysisTimeRange) {
+        callback(null, 0);
+        return;
+      }
+
       const timeSlots = getOverlappingTimeSlotsByDays(analysisTimeRange, windowSize);
       const simList = timeSlots.map((timeSlot) => {
         return calculateEntitySimilarityOnTimeRange(
           twitterUserData,
-          disqusUserData,
+          disqusData,
           timeSlot.windowStart,
           timeSlot.windowEnd
         );
@@ -400,26 +408,32 @@ const calculateEntitySimilarity = (twitterUserId, disqusUserId, windowSize, call
 exports.calculateEntitySimilarity = calculateEntitySimilarity;
 
 const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, windowSize, callback) => {
-  async.mapSeries(userIdList,
-    (twitterUserId, callback) => {
-      calculateEntitySimilarity(twitterUserId, userId, windowSize, callback);
-    }, (err, results) => {
-      if (err) {
-        callback(err);
-        return;
-      }
+  precompute.getRequiredDisqusData(userId, (err, disqusData) => {
+    if (err) {
+      callback(err);
+      return;
+    }
 
-      const formattedResults = results.map((r, i) => {
-        return {
-          user: userIdList[i],
-          sim: r,
-        };
+    async.mapSeries(userIdList,
+      (twitterUserId, callback) => {
+        calculateEntitySimilarity(twitterUserId, disqusData, windowSize, callback);
+      }, (err, results) => {
+        if (err) {
+          callback(err);
+          return;
+        }
+
+        const formattedResults = results.map((r, i) => {
+          return {
+            user: userIdList[i],
+            sim: r,
+          };
+        });
+
+        const res = formattedResults.sort((a, b) => b.sim - a.sim);
+        callback(null, res);
       });
-
-      const res = formattedResults.sort((a, b) => b.sim - a.sim);
-      callback(null, res);
-    });
-
+  })
 };
 
 exports.generateEntitySimilarityRankingWithTwitter = generateEntitySimilarityRankingWithTwitter;
