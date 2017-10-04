@@ -14,8 +14,8 @@ const runExperiment = (numCandidates, numToMatch, simFunc, windowSize, outputFil
   const errors = [];
   const processStart = new Date();
   const totalUserList = fileLogic.getUserIdList();
-  const candidateList = totalUserList.slice(0, numCandidates);
-  const toMatchList = totalUserList.slice(0, numToMatch);
+  const candidateList = totalUserList.slice(1800, totalUserList.length);
+  const toMatchList = totalUserList.slice(0, totalUserList.length);
 
   async.forEachOfSeries(candidateList, (userId, index, callback) => {
     const startTime = new Date();
@@ -32,12 +32,14 @@ const runExperiment = (numCandidates, numToMatch, simFunc, windowSize, outputFil
         return;
       }
 
-      console.log(`Diff = ${(new Date().getTime() - startTime.getTime()) / 1000}s`);
-      matchingResults.push({
+      console.log(`Required time for completion = ${(new Date().getTime() - startTime.getTime()) / 1000}s`);
+      const result = {
         userId,
         res,
-      });
+      };
 
+      const resultPath = dataDirectory + `/${userId}/${outputFileName}`;
+      fs.writeFileSync(resultPath, JSON.stringify(result, null, 2));
       callback();
     });
   }, (err) => {
@@ -55,6 +57,7 @@ const runExperiment = (numCandidates, numToMatch, simFunc, windowSize, outputFil
       JSON.stringify(matchingResults, null, 2)
     );
 
+    console.log(`Finish time: ${new Date()}`);
     console.log('Tasks executed successfully');
   });
 }

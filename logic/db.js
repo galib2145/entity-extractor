@@ -160,7 +160,7 @@ const saveUserEntityMentions = (userId, media, callback) => {
   genericLogic.getEntityDataForUserAsync(userId, media)
     .then((entityData) => {
       const entityMentions = getMentionsFromEntityData(userId, entityData);
-      return saveDataAsync(`${media}EntityMentions`, entityMentions);
+      return saveDataAsync(`${media}EntityMentions1`, entityMentions);
     })
     .then((result) => {
       callback(null, result);
@@ -192,7 +192,7 @@ const saveUserPosts = (userId, media, callback) => {
         }
         return post;
       });
-      return saveDataAsync(`${media}Posts`, formattedPosts);
+      return saveDataAsync(`${media}Posts1`, formattedPosts);
     })
     .then((result) => {
       callback(null, result);
