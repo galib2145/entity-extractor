@@ -9,6 +9,26 @@ const dbLogic = Promise.promisifyAll(require('../db.js'));
 const utils = require('../../utils');
 const fileLogic = Promise.promisifyAll(require('../file.js'));
 
+const getAllDisqusPostsForUser = (disqusId, callback) => {
+  let disqusTimeRange = null;
+  temporal.getDisqusTimeRangeAsync(disqusId)
+    .then((timeRange) => {
+      disqusTimeRange = timeRange;
+      const startDate = utils.getDateFromTime(timeRange.start);
+      const endDate = utils.getDateFromTime(timeRange.end);
+      return dbLogic.getUserPostsFromDbAsync(disqusId, 'disqus', startDate, endDate);
+    })
+    .then((postList) => {
+      callback(null, postList);
+    })
+    .catch((err) => {
+      callback(err);
+      return;
+    });
+};
+
+exports.getAllDisqusPostsForUser = getAllDisqusPostsForUser;
+
 const getRequiredDisqusData = (disqusId, callback) => {
   let disqusTimeRange = null;
   temporal.getDisqusTimeRangeAsync(disqusId)
@@ -46,12 +66,26 @@ const getEntityIntersection = (disqusData, twitterId, callback) => {
   let analysisTimeRange = null;
   temporal.getAnalysisTimeRangeGivenDisqusAsync(twitterId, disqusData.timeRange)
     .then((timeRange) => {
+      if (!timeRange) {
+        return null;
+      }
       const startDate = utils.getDateFromTime(timeRange.startTime);
       const endDate = utils.getDateFromTime(timeRange.endTime);
       return dbLogic.getMentionListFromDbAsync(twitterId, 'twitter', startDate, endDate);
     })
     .then((twitterMentions) => {
-      const uniqueDisqusMentions = disqusData.mentions;
+      if (!twitterMentions || twitterMentions.length === 0) {
+        callback(null, 0);
+        return;
+      }
+
+      const disqusMentions = disqusData.mentions;
+      disqusMentions.sort((a, b) => {
+        return a.entity.localeCompare(b.entity);
+      });
+
+      const uniqueDisqusMentions = temporal.makeUniqueEntityMap(disqusMentions);
+
       twitterMentions.sort((a, b) => {
         return a.entity.localeCompare(b.entity);
       });
@@ -155,7 +189,7 @@ const processEntityIntersectionListForUser = (userId, userIdList, callback) => {
 
 // const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
 // const totalUserList = fileLogic.getUserIdList();
-// const userIdList = totalUserList.slice(1500, 1900);
+// const userIdList = totalUserList.slice(1900, totalUserList.length);
 // async.forEachOfSeries(userIdList, (userId, index, callback) => {
 //   const startTime = new Date();
 //   console.log(`\nExecuting task: ${index}`);

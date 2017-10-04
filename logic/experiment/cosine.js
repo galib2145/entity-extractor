@@ -15,15 +15,16 @@ const twitterLogic = Promise.promisifyAll(require('../analysis/twitter'));
 
 const config = require('../../config');
 const fileLogic = require('../file');
+const precompute = require('../analysis/precompute');
 
 const genericLogic = Promise.promisifyAll(require('../analysis/generic'));
 
-const getCosineSimilarityByStrArrays = (strArray1, strArray2) => {
-  const union = strArray1.concat(strArray2);
-  const featureSet = _.uniqBy(union, (e) => e);
+const getCosineSimilarityByStrArrays = (hashStr1, hashStr2, union) => {
+
+  const featureSet = Object.keys(union);
 
   const vector1 = featureSet.map((feature) => {
-    if (strArray1.includes(feature)) {
+    if (feature in hashStr1) {
       return 1;
     }
 
@@ -31,7 +32,7 @@ const getCosineSimilarityByStrArrays = (strArray1, strArray2) => {
   });
 
   const vector2 = featureSet.map((feature) => {
-    if (strArray2.includes(feature)) {
+    if (feature in hashStr2) {
       return 1;
     }
 
@@ -110,37 +111,48 @@ const getCosineSimilarityByTimeRange = (twitterPosts, disqusComments, startTime,
   const twitterPostsForTimeRange = temporal.filterByDate(twitterPosts, startDate, endDate);
   const disqusCommentsForTimeRange = temporal.filterByDate(disqusComments, startDate, endDate);
 
-  let twitterWordList = [];
+  let union = {}
+  let twitterWordHash = {};
   twitterPostsForTimeRange.forEach((p) => {
-    twitterWordList = twitterWordList.concat(p.wordList);
+    p.wordList.forEach((w) => { 
+      twitterWordHash[w] = 1;
+      union[w] = 1;
+    });
   });
 
-  let disqusWordList = [];
+  let disqusWordHash = {};
   disqusCommentsForTimeRange.forEach((p) => {
-    disqusWordList = disqusWordList.concat(p.wordList);
+    p.wordList.forEach((w) => { 
+      disqusWordHash[w] = 1;
+      union[w] = 1;
+    });
   });
 
-  return getCosineSimilarityByStrArrays(disqusWordList, twitterWordList);
+  return getCosineSimilarityByStrArrays(disqusWordHash, twitterWordHash, union);
 };
 
 exports.getCosineSimilarityByTimeRange = getCosineSimilarityByTimeRange;
 
-const calculateCosineSimilarity = (twitterUserId, disqusUserId, windowSize, callback) => {
-  const getAnalysisTimeRangeAsync = Promise.promisify(temporal.getAnalysisTimeRange);
+const calculateCosineSimilarity = (twitterId, disqusData, windowSize, callback) => {
   let analysisTimeRange = null;
-  temporal.getAnalysisTimeRangeAsync(twitterUserId, disqusUserId)
+  temporal.getAnalysisTimeRangeGivenDisqusAsync(twitterId, disqusData.timeRange)
     .then((timeRange) => {
       analysisTimeRange = timeRange;
+      if (!analysisTimeRange) {
+        return null;
+      }
+
       const startDate = utils.getDateFromTime(timeRange.startTime);
       const endDate = utils.getDateFromTime(timeRange.endTime);
-      return Promise.all([
-        dbLogic.getUserPostsFromDbAsync(twitterUserId, 'twitter', startDate, endDate),
-        dbLogic.getUserPostsFromDbAsync(disqusUserId, 'disqus', startDate, endDate),
-      ]);
+      return dbLogic.getUserPostsFromDbAsync(twitterId, 'twitter', startDate, endDate);
     })
-    .then((results) => {
-      const twitterPosts = results[0];
-      const disqusPosts = results[1];
+    .then((twitterPosts) => {
+      if (!analysisTimeRange) {
+        callback(null, 0);
+        return;
+      }
+      
+      const disqusPosts = disqusData.posts;
       const timeSlots = temporal.getOverlappingTimeSlotsByDays(analysisTimeRange, windowSize);
       const simList = timeSlots.map((timeSlot) => {
         return getCosineSimilarityByTimeRange(
@@ -167,9 +179,14 @@ const calculateCosineSimilarity = (twitterUserId, disqusUserId, windowSize, call
 exports.calculateCosineSimilarity = calculateCosineSimilarity;
 
 const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, windowSize, callback) => {
-  async.mapSeries(userIdList,
-    (twitterUserId, callback) => {
-      calculateCosineSimilarity(twitterUserId, userId, windowSize, callback);
+  precompute.getRequiredDisqusData(userId, (err, disqusData) => {
+    if (err) {
+        console.log(err);
+        callback(err);
+        return;
+    }
+    async.mapSeries(userIdList, (twitterUserId, callback) => {
+      calculateCosineSimilarity(twitterUserId, disqusData, windowSize, callback);
     }, (err, results) => {
       if (err) {
         console.log(err);
@@ -187,6 +204,9 @@ const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, windowSi
       const res = formattedResults.sort((a, b) => b.sim - a.sim);
       callback(null, res);
     });
+
+  })
+  
 };
 
 exports.generateEntitySimilarityRankingWithTwitter = generateEntitySimilarityRankingWithTwitter;

@@ -44,6 +44,8 @@ const filterByDate = (data, s, e) => {
   return data.slice(si, ei + 1);
 };
 
+exports.filterByDate = filterByDate;
+
 const getEntityMentionIntersection = (disqusMentions, twitterMentions) => {
   let intersection = [];
   for (let disqusEntry in disqusMentions) {
@@ -58,6 +60,8 @@ const getEntityMentionIntersection = (disqusMentions, twitterMentions) => {
 
   return intersection;
 };
+
+exports.getEntityMentionIntersection = getEntityMentionIntersection;
 
 const compareTime = (t1, t2) => {
   if (t1.year !== t2.year) {
@@ -138,14 +142,14 @@ const getAnalysisTimeRange = (twitterUserId, disqusUserId, callback) => {
 exports.getAnalysisTimeRange = getAnalysisTimeRange;
 
 const doesTimeRangesOverlap = (disqusTimeRange, twitterTimeRange) => {
-   const r1 = compareTime(disqusTimeRange.start, twitterTimeRange.end);
-   const r2 = compareTime(twitterTimeRange.start, disqusTimeRange.end);
+  const r1 = compareTime(disqusTimeRange.start, twitterTimeRange.end);
+  const r2 = compareTime(twitterTimeRange.start, disqusTimeRange.end);
 
-   if (r1 > 0 || r2 > 0) {
-     return false;
-   }
+  if (r1 > 0 || r2 > 0) {
+    return false;
+  }
 
-   return true;   
+  return true;
 };
 
 const getAnalysisTimeRangeGivenDisqus = (twitterUserId, disqusTimeRange, callback) => {
@@ -175,6 +179,8 @@ const getAnalysisTimeRangeGivenDisqus = (twitterUserId, disqusTimeRange, callbac
     })
     .catch((err) => callback(err));
 };
+
+exports.getAnalysisTimeRangeGivenDisqus = getAnalysisTimeRangeGivenDisqus;
 
 const filterUserDataByTimeSlot = (userData, timeSlot) => {
   const startTime = timeSlot.windowStart;
@@ -365,6 +371,20 @@ const getOverlappingTimeSlotsByDays = (timeRange, numDays) => {
 
 exports.getOverlappingTimeSlotsByDays = getOverlappingTimeSlotsByDays;
 
+const readIntersectionData = (userId, withUserIndex, callback) => {
+  const readDir = path.join(process.env.HOME, 'entity-analysis-2');
+  const readPath = `${readDir}/${userId}/intersection`;
+  fs.readFileAsync(readPath)
+    .then((content) => {
+      const intersectionData = JSON.parse(content);
+      callback(null, intersectionData[withUserIndex]);
+    })
+    .catch((err) => {
+      callback(err);
+      return;
+    });
+};
+
 const calculateEntitySimilarity = (twitterUserId, disqusData, windowSize, callback) => {
   const getAnalysisTimeRangeGivenDisqusAsync = Promise.promisify(getAnalysisTimeRangeGivenDisqus);
   let analysisTimeRange = null;
@@ -416,7 +436,21 @@ const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, windowSi
 
     async.mapSeries(userIdList,
       (twitterUserId, callback) => {
-        calculateEntitySimilarity(twitterUserId, disqusData, windowSize, callback);
+        const userIdx = userIdList.indexOf(twitterUserId);
+        readIntersectionData(userId, userIdx, (err, r) => {
+          if (err) {
+            callback(err);
+            return;
+          }
+
+          if (r == 0) {
+            callback(null, 0);
+            return;
+          }
+
+          calculateEntitySimilarity(twitterUserId, disqusData, windowSize, callback);
+        })
+        
       }, (err, results) => {
         if (err) {
           callback(err);
