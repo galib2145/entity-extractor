@@ -14,8 +14,8 @@ const runExperiment = (numCandidates, numToMatch, simFunc, windowSize, outputFil
   const errors = [];
   const processStart = new Date();
   const totalUserList = fileLogic.getUserIdList();
-  const candidateList = totalUserList.slice(0, 1);
-  const toMatchList = totalUserList.slice(0, 1);
+  const candidateList = totalUserList.slice(0, 100);
+  const toMatchList = totalUserList.slice(0, totalUserList.length);
 
   async.forEachOfSeries(candidateList, (userId, index, callback) => {
     const startTime = new Date();
@@ -85,7 +85,7 @@ const runExperiment = (numCandidates, numToMatch, simFunc, windowSize, outputFil
 const numUsers = 1;
 const whichExp = 'c'
 const windowSize = 7;
-const outputFileName = 'test-cos';
+const outputFileName = 'cosine-7-ov';
 const numToMatch = 1900;
 
 let simFunc = temporalLogic.generateEntitySimilarityRankingWithTwitter;
