@@ -17,23 +17,30 @@ const timeParser = require('./parsing/timeParser');
 
 let db = null;
 
-const cleanDB = (db, callback) => {
-  const twitterEntityMentionCollection = Promise.promisifyAll(db.collection('twitterEntityMentions'));
-  const disqusEntityMentionCollection = Promise.promisifyAll(db.collection('disqusEntityMentions'));
+const removeData = (callback) => {
+  getDB((err, db) => {
+    if (err) {
+      callback(err);
+      return;
+    }
 
-  const removalTasks = [
-    disqusEntityMentionCollection.removeAsync({ type: 'TwitterHandle' }),
-    twitterEntityMentionCollection.removeAsync({ type: 'TwitterHandle' }),
-    disqusEntityMentionCollection.removeAsync({ type: 'Quantity' }),
-    twitterEntityMentionCollection.removeAsync({ type: 'Quantity' })
-  ];
+    const twitterEntityMentionCollection = Promise.promisifyAll(db.collection('twitterEntityMentions'));
+    const disqusEntityMentionCollection = Promise.promisifyAll(db.collection('disqusEntityMentions'));
 
-  Promise.all(removalTasks)
-    .then(() => callback(null, db))
-    .catch((err) => callback(err));
+    const removalTasks = [
+      disqusEntityMentionCollection.removeAsync({ type: 'TwitterHandle' }),
+      twitterEntityMentionCollection.removeAsync({ type: 'TwitterHandle' }),
+      disqusEntityMentionCollection.removeAsync({ type: 'Quantity' }),
+      twitterEntityMentionCollection.removeAsync({ type: 'Quantity' })
+    ];
+    Promise.all(removalTasks)
+      .then(() => callback(null))
+      .catch((err) => callback(err));
+  });
+
 };
 
-exports.cleanDB = cleanDB;
+exports.removeData = removeData;
 
 const createDBIndexes = (db, callback) => {
   const twitterPostCollection = Promise.promisifyAll(db.collection('twitterPosts'));
@@ -198,7 +205,7 @@ const saveUserPosts = (userId, media, callback) => {
   (media === 'disqus' ?
     disqusAnalysisLogic.getDisqusCommentsAsync(userId) :
     twitterAnalysisLogic.getTwitterPostsAsync(userId))
-  .then((posts) => {
+    .then((posts) => {
       const formattedPosts = posts.map((post) => {
         const time = post.time;
         const intrTime = timeParser.parseTimeString(time);
@@ -304,11 +311,11 @@ const saveUserDataInDB = (userId, callback) => {
   const saveUserPostsAsync = Promise.promisify(saveUserPosts);
   const saveUserEntityMentionsAsync = Promise.promisify(saveUserEntityMentions);
   const dataSavingTasks = [
-        saveUserPostsAsync(userId, 'disqus'),
-        saveUserPostsAsync(userId, 'twitter'),
-        saveUserEntityMentionsAsync(userId, 'disqus'),
-        saveUserEntityMentionsAsync(userId, 'twitter'),
-      ];
+    saveUserPostsAsync(userId, 'disqus'),
+    saveUserPostsAsync(userId, 'twitter'),
+    saveUserEntityMentionsAsync(userId, 'disqus'),
+    saveUserEntityMentionsAsync(userId, 'twitter'),
+  ];
 
   Promise.all(dataSavingTasks)
     .then(() => {

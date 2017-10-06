@@ -8,13 +8,13 @@ const sentimentLogic = require('./sentiment');
 const temporalLogic = require('./temporal');
 const cosineLogic = require('./cosine');
 
-const runExperiment = (numCandidates, simFunc, windowSize, outputFileName) => {
+const runExperiment = (startIndex, endIndex, simFunc, windowSize, outputFileName) => {
   const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
   const matchingResults = [];
   const errors = [];
   const processStart = new Date();
   const totalUserList = fileLogic.getUserIdList();
-  const candidateList = totalUserList.slice(0, numCandidates);
+  const candidateList = totalUserList.slice(startIndex, endIndex);
   const toMatchList = totalUserList.slice(0, totalUserList.length);
 
   async.forEachOfSeries(candidateList, (userId, index, callback) => {
@@ -62,8 +62,9 @@ const runExperiment = (numCandidates, simFunc, windowSize, outputFileName) => {
   });
 }
 
-prompt.get(['numUsers', 'which', 'windowSize', 'outputFileName'], function (err, result) {
-  const numUsers = parseInt(result.numUsers, 10);
+prompt.get(['start', 'end', 'which', 'windowSize', 'outputFileName'], function (err, result) {
+  const start = parseInt(result.start, 10);
+  const end = parseInt(result.end, 10);
   const whichExp = result.which;
   const windowSize = parseInt(result.windowSize, 10);
   const outputFileName = result.outputFileName;
@@ -78,7 +79,7 @@ prompt.get(['numUsers', 'which', 'windowSize', 'outputFileName'], function (err,
     simFunc = cosineLogic.generateEntitySimilarityRankingWithTwitter;
   }
 
-  runExperiment(numUsers, simFunc, windowSize, outputFileName);
+  runExperiment(start, end, simFunc, windowSize, outputFileName);
 });
 
 // const numUsers = 1;
