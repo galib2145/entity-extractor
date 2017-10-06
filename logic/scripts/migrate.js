@@ -7,7 +7,8 @@ const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
 
 const userDirectories = fileLogic.getDirectories(dataDirectory);
 async.forEachOfSeries(userDirectories, (userDir, index, callback) => {
-  const userId = userDir.split('/')[4];
+  const splitted = userDir.split('/');
+  const userId = splitted[splitted.length - 1];
   console.log(`\nSaving user data for : ${userId}`);
   dbLogic.saveUserDataInDB(userId, callback);
 }, (err) => {

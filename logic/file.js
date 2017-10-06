@@ -30,7 +30,10 @@ exports.deleteFolderRecursive = deleteFolderRecursive;
 const getUserIdList = () => {
   const analysisDir = path.join(process.env.HOME, 'entity-analysis-2');
   const userDirectories = getDirectories(analysisDir);
-  return userDirectories.map(dir => dir.split('/')[4]);
+  return userDirectories.map(dir => { 
+    const splitted = dir.split('/');
+    return splitted[splitted.length - 1];
+  });
 };
 
 exports.getUserIdList = getUserIdList;

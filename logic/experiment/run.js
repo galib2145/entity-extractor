@@ -8,13 +8,13 @@ const sentimentLogic = require('./sentiment');
 const temporalLogic = require('./temporal');
 const cosineLogic = require('./cosine');
 
-const runExperiment = (numCandidates, numToMatch, simFunc, windowSize, outputFileName) => {
+const runExperiment = (numCandidates, simFunc, windowSize, outputFileName) => {
   const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
   const matchingResults = [];
   const errors = [];
   const processStart = new Date();
   const totalUserList = fileLogic.getUserIdList();
-  const candidateList = totalUserList.slice(0, 100);
+  const candidateList = totalUserList.slice(0, numCandidates);
   const toMatchList = totalUserList.slice(0, totalUserList.length);
 
   async.forEachOfSeries(candidateList, (userId, index, callback) => {
@@ -62,40 +62,39 @@ const runExperiment = (numCandidates, numToMatch, simFunc, windowSize, outputFil
   });
 }
 
-// prompt.get(['numUsers', 'which', 'windowSize', 'numToMatch', 'outputFileName'], function (err, result) {
-//   const numUsers = parseInt(result.numUsers, 10);
-//   const whichExp = result.which;
-//   const windowSize = parseInt(result.windowSize, 10);
-//   const outputFileName = result.outputFileName;
-//   const numToMatch = parseInt(result.numToMatch, 10);
+prompt.get(['numUsers', 'which', 'windowSize', 'outputFileName'], function (err, result) {
+  const numUsers = parseInt(result.numUsers, 10);
+  const whichExp = result.which;
+  const windowSize = parseInt(result.windowSize, 10);
+  const outputFileName = result.outputFileName;
 
-//   let simFunc = temporalLogic.generateEntitySimilarityRankingWithTwitter;
+  let simFunc = temporalLogic.generateEntitySimilarityRankingWithTwitter;
 
-//   if (whichExp === 's') {
-//     simFunc = sentimentLogic.generateEntitySimilarityRankingWithTwitter;
-//   }
+  if (whichExp === 's') {
+    simFunc = sentimentLogic.generateEntitySimilarityRankingWithTwitter;
+  }
 
-//   if (whichExp === 'c') {
-//     simFunc = cosineLogic.generateEntitySimilarityRankingWithTwitter;
-//   }
+  if (whichExp === 'c') {
+    simFunc = cosineLogic.generateEntitySimilarityRankingWithTwitter;
+  }
 
-//   runExperiment(numUsers, numToMatch, simFunc, windowSize, outputFileName);
-// });
+  runExperiment(numUsers, simFunc, windowSize, outputFileName);
+});
 
-const numUsers = 1;
-const whichExp = 'c'
-const windowSize = 7;
-const outputFileName = 'cosine-7-ov';
-const numToMatch = 1900;
+// const numUsers = 1;
+// const whichExp = 'c'
+// const windowSize = 7;
+// const outputFileName = 'cosine-7-ov';
+// const numToMatch = 1900;
 
-let simFunc = temporalLogic.generateEntitySimilarityRankingWithTwitter;
+// let simFunc = temporalLogic.generateEntitySimilarityRankingWithTwitter;
 
-if (whichExp === 's') {
-  simFunc = sentimentLogic.generateEntitySimilarityRankingWithTwitter;
-}
+// if (whichExp === 's') {
+//   simFunc = sentimentLogic.generateEntitySimilarityRankingWithTwitter;
+// }
 
-if (whichExp === 'c') {
-  simFunc = cosineLogic.generateEntitySimilarityRankingWithTwitter;
-}
+// if (whichExp === 'c') {
+//   simFunc = cosineLogic.generateEntitySimilarityRankingWithTwitter;
+// }
 
-runExperiment(numUsers, numToMatch, simFunc, windowSize, outputFileName);
+// runExperiment(numUsers, simFunc, windowSize, outputFileName);

@@ -24,6 +24,7 @@ const outputDirectory = path.join(process.env.HOME, 'entity-analysis-2');
 const errorReport = [];
 
 const analysisTask = (userDirectory, taskIndex, callback) => {
+  console.log(userDirectory);
   const userId = userDirectory.split('/')[4];
 
   if (!genericLogic.shouldUserBeAnalyzed(userId)) {
