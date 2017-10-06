@@ -17,6 +17,24 @@ const timeParser = require('./parsing/timeParser');
 
 let db = null;
 
+const cleanDB = (db, callback) => {
+  const twitterEntityMentionCollection = Promise.promisifyAll(db.collection('twitterEntityMentions'));
+  const disqusEntityMentionCollection = Promise.promisifyAll(db.collection('disqusEntityMentions'));
+
+  const removalTasks = [
+    disqusEntityMentionCollection.removeAsync({ type: 'TwitterHandle' }),
+    twitterEntityMentionCollection.removeAsync({ type: 'TwitterHandle' }),
+    disqusEntityMentionCollection.removeAsync({ type: 'Quantity' }),
+    twitterEntityMentionCollection.removeAsync({ type: 'Quantity' })
+  ];
+
+  Promise.all(removalTasks)
+    .then(() => callback(null, db))
+    .catch((err) => callback(err));
+};
+
+exports.cleanDB = cleanDB;
+
 const createDBIndexes = (db, callback) => {
   const twitterPostCollection = Promise.promisifyAll(db.collection('twitterPosts'));
   const disqusPostCollection = Promise.promisifyAll(db.collection('disqusPosts'));
@@ -28,6 +46,8 @@ const createDBIndexes = (db, callback) => {
     twitterPostCollection.ensureIndexAsync({ date: 1 }),
     disqusPostCollection.ensureIndexAsync({ userId: 1 }),
     disqusPostCollection.ensureIndexAsync({ date: 1 }),
+    disqusPostCollection.ensureIndexAsync({ userId: 1, date: 1 }),
+    twitterPostCollection.ensureIndexAsync({ userId: 1, date: 1 }),
     disqusEntityMentionCollection.ensureIndexAsync({ userId: 1, date: 1 }),
     twitterEntityMentionCollection.ensureIndexAsync({ userId: 1, date: 1 })
   ];

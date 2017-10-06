@@ -163,8 +163,7 @@ const calculateCosineSimilarity = (twitterId, disqusData, windowSize, callback) 
         );
       });
 
-      const nonzeroes = simList.filter(r => r > 0);
-      const sum = nonzeroes.reduce((prevVal, elem) => prevVal + elem, 0);
+      const sum = simList.reduce((prevVal, elem) => prevVal + elem, 0);
       const avg = sum / simList.length;
 
       callback(null, avg);
@@ -201,8 +200,7 @@ const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, windowSi
         };
       });
 
-      const res = formattedResults.sort((a, b) => b.sim - a.sim);
-      callback(null, res);
+      callback(null, formattedResults);
     });
 
   })
