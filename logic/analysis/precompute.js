@@ -182,7 +182,7 @@ const processEntityIntersectionListForUser = (userId, userIdList, callback) => {
 
 const generateTimeRangeData = (callback) => {
   const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
-  const totalUserList = fileLogic.getUserIdList().slice(0, 2);
+  const totalUserList = fileLogic.getUserIdList();
   const timeRangeData = {};
 
   totalUserList.forEach((ud) => {
@@ -221,7 +221,7 @@ const generateTimeRangeData = (callback) => {
     });
   });
 
-  return JSON.stringify(timeRangeData, null, 2);
+  return timeRangeData;
 };
 
 exports.generateTimeRangeData = generateTimeRangeData;

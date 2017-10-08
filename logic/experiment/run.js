@@ -6,6 +6,7 @@ const fs = require('fs');
 const fileLogic = require('../file');
 const sentimentLogic = require('./sentiment');
 const temporalLogic = require('./temporal');
+const precompute = require('../analysis/precompute');
 const cosineLogic = require('./cosine');
 
 const runExperiment = (startIndex, endIndex, simFunc, windowSize, outputFileName) => {
@@ -16,13 +17,17 @@ const runExperiment = (startIndex, endIndex, simFunc, windowSize, outputFileName
   const processStart = new Date();
   const totalUserList = fileLogic.getUserIdList();
   const candidateList = totalUserList.slice(startIndex, endIndex);
-  const toMatchList = totalUserList.slice(0, 1);
+  console.log(candidateList);
+  const toMatchList = totalUserList.slice(0, totalUserList.length);
+  console.time('Calc time range');
+  const timeRangeData = precompute.generateTimeRangeData();
+  console.timeEnd('Calc time range');
 
   async.forEachOfSeries(candidateList, (userId, index, callback) => {
     const startTime = new Date();
     console.log(`\nExecuting task: ${index}`);
     console.log(`Starting matching for : ${userId}`);
-    simFunc(userId, toMatchList, windowSize, (err, res) => {
+    simFunc(userId, toMatchList, timeRangeData, windowSize, (err, res) => {
       if (err) {
         console.log(err);
         errors.push({
