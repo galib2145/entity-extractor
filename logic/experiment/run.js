@@ -9,13 +9,14 @@ const temporalLogic = require('./temporal');
 const cosineLogic = require('./cosine');
 
 const runExperiment = (startIndex, endIndex, simFunc, windowSize, outputFileName) => {
+  const expStart = new Date();
   const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
   const matchingResults = [];
   const errors = [];
   const processStart = new Date();
   const totalUserList = fileLogic.getUserIdList();
   const candidateList = totalUserList.slice(startIndex, endIndex);
-  const toMatchList = totalUserList.slice(0, totalUserList.length);
+  const toMatchList = totalUserList.slice(0, 1);
 
   async.forEachOfSeries(candidateList, (userId, index, callback) => {
     const startTime = new Date();
@@ -52,17 +53,19 @@ const runExperiment = (startIndex, endIndex, simFunc, windowSize, outputFileName
       path.join(path.join(process.env.HOME, `/res/error-${outputFileName}`)),
       JSON.stringify(errors, null, 2)
     );
+
     fs.writeFileSync(
       path.join(path.join(process.env.HOME, `/res/match-${outputFileName}`)),
       JSON.stringify(matchingResults, null, 2)
     );
 
+    console.log(`Start time: ${expStart}`);
     console.log(`Finish time: ${new Date()}`);
     console.log('Tasks executed successfully');
   });
 }
 
-prompt.get(['start', 'end', 'which', 'windowSize', 'outputFileName'], function (err, result) {
+prompt.get(['start', 'end', 'which', 'windowSize', 'outputFileName'], function(err, result) {
   const start = parseInt(result.start, 10);
   const end = parseInt(result.end, 10);
   const whichExp = result.which;

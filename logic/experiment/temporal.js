@@ -75,15 +75,20 @@ const compareTime = (t1, t2) => {
   return t1.day - t2.day;
 };
 
+exports.compareTime = compareTime;
+
 const getTwitterTimeRange = (userId, callback) => {
+  console.time('fs');
   twitterLogic.getTwitterPostsAsync(userId)
     .then((twitterPosts) => {
-      const postTimes = twitterPosts.map(post => timeParser.parseTimeString(post.time));
+      console.timeEnd('fs');
+      // const postTimes = twitterPosts.map(post => timeParser.parseTimeString(post.time));
+      console.time('populate');
       const timeInfo = {
-        start: postTimes[postTimes.length - 1],
-        end: postTimes[0]
+        start: timeParser.parseTimeString(twitterPosts[twitterPosts.length - 1].time),
+        end: timeParser.parseTimeString(twitterPosts[0].time)
       };
-
+      console.timeEnd('populate');
       callback(null, timeInfo);
     })
     .catch((err) => callback(err));
@@ -152,10 +157,14 @@ const doesTimeRangesOverlap = (disqusTimeRange, twitterTimeRange) => {
   return true;
 };
 
+exports.doesTimeRangesOverlap = doesTimeRangesOverlap;
+
 const getAnalysisTimeRangeGivenDisqus = (twitterUserId, disqusTimeRange, callback) => {
   const getTwitterTimeRangeAsync = Promise.promisify(getTwitterTimeRange);
+  console.time('ts');
   getTwitterTimeRangeAsync(twitterUserId)
     .then((twitterTimeRange) => {
+      console.timeEnd('ts');
       // console.log(disqusTimeRange);
       // console.log(twitterTimeRange);
       const doesOverlap = doesTimeRangesOverlap(disqusTimeRange, twitterTimeRange);
@@ -307,7 +316,7 @@ const getTimeSlotsByDays = (timeRange, numDays) => {
     return timeSlots;
   }
 
-  for (; ;) {
+  for (;;) {
     let windowEnd = addDays(windowStart, numDays);
     let endFlag = false;
     if (compareTime(windowEnd, endTime) > 0) {
@@ -346,7 +355,7 @@ const getOverlappingTimeSlotsByDays = (timeRange, numDays) => {
     return timeSlots;
   }
 
-  for (; ;) {
+  for (;;) {
     let windowEnd = addDays(windowStart, numDays);
     let endFlag = false;
     if (compareTime(windowEnd, endTime) > 0) {
@@ -450,7 +459,7 @@ const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, windowSi
 
           calculateEntitySimilarity(twitterUserId, disqusData, windowSize, callback);
         })
-        
+
       }, (err, results) => {
         if (err) {
           callback(err);

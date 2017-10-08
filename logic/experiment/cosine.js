@@ -74,7 +74,7 @@ const makeWordListForUserProfile = (userId, media, callback) => {
 exports.makeWordListForUserProfile = makeWordListForUserProfile;
 
 const saveWordListForUserProfile = (userId, media, callback) => {
-  const makeWordListForUserProfileAsync = 
+  const makeWordListForUserProfileAsync =
     Promise.promisify(makeWordListForUserProfile);
   const outDir = path.join(process.env.HOME, 'entity-analysis-2');
   const outPath = `${outDir}/${userId}/${media}-words`;
@@ -114,7 +114,7 @@ const getCosineSimilarityByTimeRange = (twitterPosts, disqusComments, startTime,
   let union = {}
   let twitterWordHash = {};
   twitterPostsForTimeRange.forEach((p) => {
-    p.wordList.forEach((w) => { 
+    p.wordList.forEach((w) => {
       twitterWordHash[w] = 1;
       union[w] = 1;
     });
@@ -122,7 +122,7 @@ const getCosineSimilarityByTimeRange = (twitterPosts, disqusComments, startTime,
 
   let disqusWordHash = {};
   disqusCommentsForTimeRange.forEach((p) => {
-    p.wordList.forEach((w) => { 
+    p.wordList.forEach((w) => {
       disqusWordHash[w] = 1;
       union[w] = 1;
     });
@@ -135,8 +135,10 @@ exports.getCosineSimilarityByTimeRange = getCosineSimilarityByTimeRange;
 
 const calculateCosineSimilarity = (twitterId, disqusData, windowSize, callback) => {
   let analysisTimeRange = null;
+  console.time('Calculate Time range');
   temporal.getAnalysisTimeRangeGivenDisqusAsync(twitterId, disqusData.timeRange)
     .then((timeRange) => {
+      console.timeEnd('Calculate Time range');
       analysisTimeRange = timeRange;
       if (!analysisTimeRange) {
         return null;
@@ -144,16 +146,21 @@ const calculateCosineSimilarity = (twitterId, disqusData, windowSize, callback) 
 
       const startDate = utils.getDateFromTime(timeRange.startTime);
       const endDate = utils.getDateFromTime(timeRange.endTime);
+      console.time('Get twitter posts');
       return dbLogic.getUserPostsFromDbAsync(twitterId, 'twitter', startDate, endDate);
     })
     .then((twitterPosts) => {
+      console.timeEnd('Get twitter posts');
       if (!analysisTimeRange) {
         callback(null, 0);
         return;
       }
-      
+
       const disqusPosts = disqusData.posts;
+      console.time('Get time slots');
       const timeSlots = temporal.getOverlappingTimeSlotsByDays(analysisTimeRange, windowSize);
+      console.timeEnd('Get time slots');
+      console.time('Main calculation');
       const simList = timeSlots.map((timeSlot) => {
         return getCosineSimilarityByTimeRange(
           twitterPosts,
@@ -162,10 +169,11 @@ const calculateCosineSimilarity = (twitterId, disqusData, windowSize, callback) 
           timeSlot.windowEnd
         );
       });
-
+      console.timeEnd('Main calculation');
+      console.time('result prep');
       const sum = simList.reduce((prevVal, elem) => prevVal + elem, 0);
       const avg = sum / simList.length;
-
+      console.timeEnd('result prep');
       callback(null, avg);
     })
     .catch((err) => {
@@ -180,9 +188,9 @@ exports.calculateCosineSimilarity = calculateCosineSimilarity;
 const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, windowSize, callback) => {
   precompute.getRequiredDisqusData(userId, (err, disqusData) => {
     if (err) {
-        console.log(err);
-        callback(err);
-        return;
+      console.log(err);
+      callback(err);
+      return;
     }
     async.mapSeries(userIdList, (twitterUserId, callback) => {
       calculateCosineSimilarity(twitterUserId, disqusData, windowSize, callback);
@@ -204,7 +212,7 @@ const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, windowSi
     });
 
   })
-  
+
 };
 
 exports.generateEntitySimilarityRankingWithTwitter = generateEntitySimilarityRankingWithTwitter;

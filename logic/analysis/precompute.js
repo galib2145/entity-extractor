@@ -9,6 +9,10 @@ const dbLogic = Promise.promisifyAll(require('../db.js'));
 const utils = require('../../utils');
 const fileLogic = Promise.promisifyAll(require('../file.js'));
 
+const twitter = require('./twitter');
+const disqus = require('./disqus');
+const timeParser = require('../parsing/timeParser');
+
 const getAllDisqusPostsForUser = (disqusId, callback) => {
   let disqusTimeRange = null;
   temporal.getDisqusTimeRangeAsync(disqusId)
@@ -176,44 +180,48 @@ const processEntityIntersectionListForUser = (userId, userIdList, callback) => {
     });
 }
 
-// console.log(`Start time: ${new Date()}`);
-// generateZeroIntersectionData((err, r) => {
-//   if (err) {
-//     console.log(err);
-//     return;
-//   }
+const generateTimeRangeData = (callback) => {
+  const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
+  const totalUserList = fileLogic.getUserIdList().slice(0, 2);
+  const timeRangeData = {};
 
-//   console.log(r);
-//   console.log(`End time: ${new Date()}`);
-// });
+  totalUserList.forEach((ud) => {
+    totalUserList.forEach((ut) => {
+      const tp = twitter.getTwitterPostsSync(ut);
+      const dp = disqus.getDisqusCommentsSync(ud);
 
-// const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
-// const totalUserList = fileLogic.getUserIdList();
-// const userIdList = totalUserList.slice(1900, totalUserList.length);
-// async.forEachOfSeries(userIdList, (userId, index, callback) => {
-//   const startTime = new Date();
-//   console.log(`\nExecuting task: ${index}`);
-//   if (fs.existsSync(`${dataDirectory}/${userId}/intersection`)) {
-//     console.log('Intersection already processed!')
-//     callback();
-//     return;
-//   }
-//   console.log(`Computing intersection list for : ${userId}`);
-//   processEntityIntersectionListForUser(userId, totalUserList, (err) => {
-//     if (err) {
-//       console.log(err);
-//       callback();
-//       return;
-//     }
+      const ttr = {
+        start: timeParser.parseTimeString(tp[tp.length - 1].time),
+        end: timeParser.parseTimeString(tp[0].time)
+      };
 
-//     console.log(`Diff = ${(new Date().getTime() - startTime.getTime()) / 1000}s`);
-//     callback();
-//   });
-// }, (err) => {
-//   if (err) {
-//     console.log(err.message);
-//     return;
-//   }
+      const dtr = {
+        start: timeParser.parseTimeString(dp[dp.length - 1].time),
+        end: timeParser.parseTimeString(dp[0].time)
+      };
 
-//   console.log('Tasks executed successfully');
-// });
+      const doesOverlap = temporal.doesTimeRangesOverlap(dtr, ttr);
+
+      let tr = null;
+
+      if (doesOverlap) {
+        tr = {
+          startTime: temporal.compareTime(dtr.start, ttr.start) > 0 ?
+            dtr.start : ttr.start,
+          endTime: temporal.compareTime(dtr.end, ttr.end) > 0 ?
+            ttr.end : dtr.end,
+        };
+      }
+
+      if (!timeRangeData[ud]) {
+        timeRangeData[ud] = {};
+      }
+
+      timeRangeData[ud][ut] = tr;
+    });
+  });
+
+  return JSON.stringify(timeRangeData, null, 2);
+};
+
+exports.generateTimeRangeData = generateTimeRangeData;
