@@ -253,7 +253,8 @@ const saveTrData = (trData) => {
     console.time(`Saving result for user ${index}: ${u}`);
     const trDataForU = trData[u];
     const trDataForUString = JSON.stringify(trDataForU, null, 2);
-    fs.writeFileSync(`/home/saad-galib/tr-data/${u}.json`, trDataForUString);
+    const readPath = path.join(process.env.HOME, '/tr-data/${u}.json');
+    fs.writeFileSync(readPath, trDataForUString);
     console.timeEnd(`Saving result for user ${index}: ${u}`);
   });
 };
@@ -261,7 +262,8 @@ const saveTrData = (trData) => {
 const readTrData = () => {
   const trDataAll = {};
   mainUserList.forEach((u, index) => {
-    const trDataStr = fs.readFileSync(`/home/saad-galib/tr-data/${u}.json`);
+    const readPath = path.join(process.env.HOME, `/tr-data/${u}.json`);
+    const trDataStr = fs.readFileSync(readPath);
     const trDataForU = JSON.parse(trDataStr);
     trDataAll[u] = trDataForU;
   });
