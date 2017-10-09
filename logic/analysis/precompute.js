@@ -180,15 +180,35 @@ const processEntityIntersectionListForUser = (userId, userIdList, callback) => {
     });
 }
 
+const getAllPostData = () => {
+  const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
+  const totalUserList = fileLogic.getUserIdList();
+
+  const postData = {};
+
+  totalUserList.forEach((u, index) => {
+    postData[u] = {
+      twitterPosts: twitter.getTwitterPostsSync(u),
+      disqusPosts: disqus.getDisqusCommentsSync(u)
+    };
+  });
+
+  return postData;
+};
+
 const generateTimeRangeData = (callback) => {
   const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
-  const totalUserList = fileLogic.getUserIdList().slice(0, 2);
+  const totalUserList = fileLogic.getUserIdList();
   const timeRangeData = {};
+  console.time('Fetching post Data');
+  const postData = getAllPostData();
+  console.timeEnd('Fetching post Data');
 
-  totalUserList.forEach((ud) => {
+  totalUserList.forEach((ud, index) => {
+    console.time(`User ${index}: ${ud}`);
     totalUserList.forEach((ut) => {
-      const tp = twitter.getTwitterPostsSync(ut);
-      const dp = disqus.getDisqusCommentsSync(ud);
+      const tp = postData[ut]['twitterPosts'];
+      const dp = postData[ud]['disqusPosts'];
 
       const ttr = {
         start: timeParser.parseTimeString(tp[tp.length - 1].time),
@@ -219,9 +239,14 @@ const generateTimeRangeData = (callback) => {
 
       timeRangeData[ud][ut] = tr;
     });
+    console.timeEnd(`User ${index}: ${ud}`);
   });
 
   return JSON.stringify(timeRangeData, null, 2);
 };
 
 exports.generateTimeRangeData = generateTimeRangeData;
+
+console.time('Calculate time range');
+const timeRangeData = generateTimeRangeData();
+console.timeEnd('Calculate time range');
