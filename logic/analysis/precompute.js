@@ -2,6 +2,7 @@ const Promise = require('bluebird');
 const path = require('path');
 const fs = Promise.promisifyAll(require('fs'));
 const async = require('async');
+const bfj = require('bfj');
 
 const temporal = Promise.promisifyAll(require('../experiment/temporal'));
 const dbLogic = Promise.promisifyAll(require('../db.js'));
@@ -12,6 +13,7 @@ const fileLogic = Promise.promisifyAll(require('../file.js'));
 const twitter = require('./twitter');
 const disqus = require('./disqus');
 const timeParser = require('../parsing/timeParser');
+const mainUserList = fileLogic.getUserIdList();
 
 const getAllDisqusPostsForUser = (disqusId, callback) => {
   let disqusTimeRange = null;
@@ -182,7 +184,7 @@ const processEntityIntersectionListForUser = (userId, userIdList, callback) => {
 
 const getAllPostData = () => {
   const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
-  const totalUserList = fileLogic.getUserIdList();
+  const totalUserList = mainUserList;
 
   const postData = {};
 
@@ -198,15 +200,14 @@ const getAllPostData = () => {
 
 const generateTimeRangeData = (callback) => {
   const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
-  const totalUserList = fileLogic.getUserIdList();
   const timeRangeData = {};
   console.time('Fetching post Data');
   const postData = getAllPostData();
   console.timeEnd('Fetching post Data');
 
-  totalUserList.forEach((ud, index) => {
+  mainUserList.forEach((ud, index) => {
     console.time(`User ${index}: ${ud}`);
-    totalUserList.forEach((ut) => {
+    mainUserList.forEach((ut) => {
       const tp = postData[ut]['twitterPosts'];
       const dp = postData[ud]['disqusPosts'];
 
@@ -247,6 +248,33 @@ const generateTimeRangeData = (callback) => {
 
 exports.generateTimeRangeData = generateTimeRangeData;
 
-console.time('Calculate time range');
-const timeRangeData = generateTimeRangeData();
-console.timeEnd('Calculate time range');
+const saveTrData = (trData) => {
+  mainUserList.forEach((u, index) => {
+    console.time(`Saving result for user ${index}: ${u}`);
+    const trDataForU = trData[u];
+    const trDataForUString = JSON.stringify(trDataForU, null, 2);
+    fs.writeFileSync(`/home/saad-galib/tr-data/${u}.json`, trDataForUString);
+    console.timeEnd(`Saving result for user ${index}: ${u}`);
+  });
+};
+
+const readTrData = () => {
+  const trDataAll = {};
+  mainUserList.forEach((u, index) => {
+    const trDataStr = fs.readFileSync(`/home/saad-galib/tr-data/${u}.json`);
+    const trDataForU = JSON.parse(trDataStr);
+    trDataAll[u] = trDataForU;
+  });
+
+  return trDataAll;
+};
+
+exports.readTrData = readTrData;
+
+// console.time('Calculate time range');
+// const timeRangeData = generateTimeRangeData();
+// console.timeEnd('Calculate time range');
+
+// console.time('Saving result');
+// saveTrData(timeRangeData);
+// console.timeEnd('Saving result');

@@ -12,15 +12,15 @@ const cosineLogic = require('./cosine');
 const runExperiment = (startIndex, endIndex, simFunc, windowSize, outputFileName) => {
   const expStart = new Date();
   const dataDirectory = path.join(process.env.HOME, 'entity-analysis-2');
+  const timeRangeFilePath = path.join(process.env.HOME, 'tr-data.json');
   const matchingResults = [];
   const errors = [];
   const processStart = new Date();
   const totalUserList = fileLogic.getUserIdList();
   const candidateList = totalUserList.slice(startIndex, endIndex);
-  console.log(candidateList);
   const toMatchList = totalUserList.slice(0, totalUserList.length);
   console.time('Calc time range');
-  const timeRangeData = precompute.generateTimeRangeData();
+  const timeRangeData = precompute.readTrData();
   console.timeEnd('Calc time range');
 
   async.forEachOfSeries(candidateList, (userId, index, callback) => {

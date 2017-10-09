@@ -141,7 +141,7 @@ const calculateCosineSimilarity = (twitterId, disqusData, timeRange, windowSize,
     .then((twitterPosts) => {
       // console.timeEnd('Get twitter posts');
       const disqusPosts = disqusData.posts;
-      //console.time('Get time slots');
+      // console.time('Get time slots');
       const timeSlots = temporal.getOverlappingTimeSlotsByDays(timeRange, windowSize);
       // console.timeEnd('Get time slots');
       // console.time('Main calculation');
