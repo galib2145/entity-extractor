@@ -136,15 +136,15 @@ exports.getCosineSimilarityByTimeRange = getCosineSimilarityByTimeRange;
 const calculateCosineSimilarity = (twitterId, disqusData, timeRange, windowSize, callback) => {
   const startDate = utils.getDateFromTime(timeRange.startTime);
   const endDate = utils.getDateFromTime(timeRange.endTime);
-  console.time('Get twitter posts');
+  // console.time('Get twitter posts');
   dbLogic.getUserPostsFromDbAsync(twitterId, 'twitter', startDate, endDate)
     .then((twitterPosts) => {
-      console.timeEnd('Get twitter posts');
+      // console.timeEnd('Get twitter posts');
       const disqusPosts = disqusData.posts;
-      console.time('Get time slots');
+      // console.time('Get time slots');
       const timeSlots = temporal.getOverlappingTimeSlotsByDays(timeRange, windowSize);
-      console.timeEnd('Get time slots');
-      console.time('Main calculation');
+      // console.timeEnd('Get time slots');
+      // console.time('Main calculation');
       const simList = timeSlots.map((timeSlot) => {
         return getCosineSimilarityByTimeRange(
           twitterPosts,
@@ -153,12 +153,12 @@ const calculateCosineSimilarity = (twitterId, disqusData, timeRange, windowSize,
           timeSlot.windowEnd
         );
       });
-      console.timeEnd('Main calculation');
-      console.time('result prep');
+      // console.timeEnd('Main calculation');
+      // console.time('result prep');
       const sum = simList.reduce((prevVal, elem) => prevVal + elem, 0);
       const avg = sum / simList.length;
-      console.timeEnd('result prep');
-      console.timeEnd('Single match');
+      // console.timeEnd('result prep');
+      // console.timeEnd('Single match');
       callback(null, avg);
       
     })
@@ -179,12 +179,12 @@ const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, timeRang
       return;
     }
     async.mapSeries(userIdList, (twitterUserId, callback) => {
-      console.log('\nStarting single match');
-      console.time('Time data');
+      // console.log('\nStarting single match');
+      // console.time('Time data');
       const trData = timeRangeData[userId][twitterUserId];
-      console.timeEnd('Time data');
+      // console.timeEnd('Time data');
       if (trData) {
-        console.time('Single match');
+        // console.time('Single match');
         calculateCosineSimilarity(twitterUserId, disqusData, trData, windowSize, callback);
       } else {
         callback(null, 0);

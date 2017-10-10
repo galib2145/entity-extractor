@@ -44,9 +44,10 @@ const runExperiment = (startIndex, endIndex, simFunc, windowSize, outputFileName
         res,
       };
 
-      const resultPath = dataDirectory + `/${userId}/${outputFileName}`;
-      fs.writeFileSync(resultPath, JSON.stringify(result, null, 2));
-      callback();
+      const resultStr = JSON.stringify(result, null, 2);
+
+      const resultPath = path.join(process.env.HOME, `/${outputFileName}/${userId}`);
+      fileLogic.writeFile(resultPath, resultStr, callback);
     });
   }, (err) => {
     if (err) {

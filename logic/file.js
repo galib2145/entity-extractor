@@ -1,6 +1,8 @@
 const path = require('path');
 const Promise = require('bluebird');
 const fs = Promise.promisifyAll(require('fs'));
+var mkdirp = require('mkdirp');
+var getDirName = require('path').dirname;
 
 const getDirectories = (srcpath) => {
   const directoryNames = fs.readdirSync(srcpath)
@@ -37,3 +39,13 @@ const getUserIdList = () => {
 };
 
 exports.getUserIdList = getUserIdList;
+
+const writeFile = (path, contents, cb) => {
+  mkdirp(getDirName(path), function (err) {
+    if (err) return cb(err);
+
+    fs.writeFile(path, contents, cb);
+  });
+};
+
+exports.writeFile = writeFile;
