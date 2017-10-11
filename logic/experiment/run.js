@@ -25,8 +25,16 @@ const runExperiment = (startIndex, endIndex, simFunc, windowSize, outputFileName
 
   async.forEachOfSeries(candidateList, (userId, index, callback) => {
     const startTime = new Date();
+    const resultPath = path.join(process.env.HOME, `/${outputFileName}/${userId}`);
     console.log(`\nExecuting task: ${index}`);
     console.log(`Starting matching for : ${userId}`);
+    
+    if (fs.existsSync(resultPath)) {
+      console.log('This task is already completed!');
+      callback();
+      return;
+    }
+    
     simFunc(userId, toMatchList, timeRangeData, windowSize, (err, res) => {
       if (err) {
         console.log(err);
@@ -46,7 +54,7 @@ const runExperiment = (startIndex, endIndex, simFunc, windowSize, outputFileName
 
       const resultStr = JSON.stringify(result, null, 2);
 
-      const resultPath = path.join(process.env.HOME, `/${outputFileName}/${userId}`);
+      
       fileLogic.writeFile(resultPath, resultStr, callback);
     });
   }, (err) => {
