@@ -394,24 +394,15 @@ const readIntersectionData = (userId, withUserIndex, callback) => {
     });
 };
 
-const calculateEntitySimilarity = (twitterUserId, disqusData, windowSize, callback) => {
-  const getAnalysisTimeRangeGivenDisqusAsync = Promise.promisify(getAnalysisTimeRangeGivenDisqus);
-  let analysisTimeRange = null;
-  getAnalysisTimeRangeGivenDisqusAsync(twitterUserId, disqusData.timeRange)
-    .then((timeRange) => {
-      analysisTimeRange = timeRange;
-      if (!analysisTimeRange) {
-        return null;
-      }
-      return dbLogic.getUserDataForTimeRangeAsync(twitterUserId, 'twitter', timeRange);
-    })
-    .then((twitterUserData) => {
-      if (!analysisTimeRange) {
-        callback(null, 0);
-        return;
-      }
+const calculateEntitySimilarity = (twitterUserId, disqusData, timeRange, windowSize, callback) => {
+  if (!timeRange) {
+    callback(null, 0);
+    return;
+  }
 
-      const timeSlots = getOverlappingTimeSlotsByDays(analysisTimeRange, windowSize);
+  dbLogic.getUserDataForTimeRangeAsync(twitterUserId, 'twitter', timeRange)
+    .then((twitterUserData) => {
+      const timeSlots = getOverlappingTimeSlotsByDays(timeRange, windowSize);
       const simList = timeSlots.map((timeSlot) => {
         return calculateEntitySimilarityOnTimeRange(
           twitterUserData,
@@ -436,7 +427,7 @@ const calculateEntitySimilarity = (twitterUserId, disqusData, windowSize, callba
 
 exports.calculateEntitySimilarity = calculateEntitySimilarity;
 
-const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, windowSize, callback) => {
+const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, timeRangeData, windowSize, callback) => {
   precompute.getRequiredDisqusData(userId, (err, disqusData) => {
     if (err) {
       callback(err);
@@ -456,8 +447,8 @@ const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, windowSi
             callback(null, 0);
             return;
           }
-
-          calculateEntitySimilarity(twitterUserId, disqusData, windowSize, callback);
+          const timeRange = timeRangeData[userId][twitterUserId];
+          calculateEntitySimilarity(twitterUserId, disqusData, timeRange, windowSize, callback);
         })
 
       }, (err, results) => {
