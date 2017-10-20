@@ -50,6 +50,40 @@ const getAllTemporalResults = (callback) => {
     });
 };
 
+const renameAllFiles = (callback) => {
+  const doesFileExistAsync = Promise.promisify(doesFileExist);
+  const sourcePath = path.join(process.env.HOME, 'entity-analysis-2');
+  let validDirList = [];
+  let resultData = [];
+  fs.readdirAsync(sourcePath)
+    .then((dirList) => {
+      validDirList = dirList;
+      const fileExistTaskList = dirList.map((dir) => {
+        const location = `${sourcePath}/${dir}/cosine-7-ov`;
+        return doesFileExistAsync(location);
+      })
+
+      return Promise.all(fileExistTaskList);
+    })
+    .then((doesExistList) => {
+      const resultFetchTaskList = validDirList.map((dir, index) => {
+        if (doesExistList[index]) {
+          return fs.renameAsync(`${sourcePath}/${dir}/cosine-7-ov`, `/home/saad/cosine-7-ov/${dir}`);
+        }
+
+        return null;
+      })
+
+      return Promise.all(resultFetchTaskList);
+    })
+    .then(() => {
+      callback();
+    })
+    .catch((err) => {
+      callback(err);
+    });
+};
+
 const getGraphDataFromResult = (callback) => {
   const resFilePath = path.join(process.env.HOME, '/res/match-whole-ov-100');
   fs.readFileAsync(resFilePath)
@@ -69,7 +103,7 @@ const getGraphDataFromResult = (callback) => {
     })
     .catch((err) => {
       callback(err);
-    });;
+    });
 };
 
 // const resFilePath = path.join(process.env.HOME, '/res/match-sentiment-2');
@@ -101,3 +135,11 @@ const getGraphDataFromResult = (callback) => {
 //     const mRR = sumRR / rrList.length;
 //     console.log(mRR);
 // })
+
+renameAllFiles((err) => {
+  if (err) {
+    console.log(err);
+    return;
+  }
+  console.log('Done');
+})
