@@ -402,7 +402,7 @@ const calculateEntitySimilarity = (twitterUserId, disqusData, timeRange, windowS
 
   dbLogic.getUserDataForTimeRangeAsync(twitterUserId, 'twitter', timeRange)
     .then((twitterUserData) => {
-      const timeSlots = getOverlappingTimeSlotsByDays(timeRange, windowSize);
+      const timeSlots = getTimeSlotsByDays(timeRange, windowSize);
       const simList = timeSlots.map((timeSlot) => {
         return calculateEntitySimilarityOnTimeRange(
           twitterUserData,
