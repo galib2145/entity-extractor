@@ -17,8 +17,8 @@ const runExperiment = (startIndex, endIndex, simFunc, windowSize, outputFileName
   const errors = [];
   const processStart = new Date();
   const totalUserList = fileLogic.getUserIdList();
-  const candidateList = totalUserList.slice(startIndex, endIndex);
-  const toMatchList = totalUserList.slice(0, totalUserList.length);
+  const candidateList = totalUserList.slice(0, 1);
+  const toMatchList = totalUserList.slice(0, 5);
   console.time('Calc time range');
   const timeRangeData = precompute.readTrData();
   console.timeEnd('Calc time range');
@@ -28,13 +28,13 @@ const runExperiment = (startIndex, endIndex, simFunc, windowSize, outputFileName
     const resultPath = path.join(process.env.HOME, `/${outputFileName}/${userId}`);
     console.log(`\nExecuting task: ${index}`);
     console.log(`Starting matching for : ${userId}`);
-    
+
     if (fs.existsSync(resultPath)) {
       console.log('This task is already completed!');
       callback();
       return;
     }
-    
+
     simFunc(userId, toMatchList, timeRangeData, windowSize, (err, res) => {
       if (err) {
         console.log(err);
@@ -54,7 +54,7 @@ const runExperiment = (startIndex, endIndex, simFunc, windowSize, outputFileName
 
       const resultStr = JSON.stringify(result, null, 2);
 
-      
+
       fileLogic.writeFile(resultPath, resultStr, callback);
     });
   }, (err) => {

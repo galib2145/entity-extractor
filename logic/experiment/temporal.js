@@ -400,22 +400,31 @@ const calculateEntitySimilarity = (twitterUserId, disqusData, timeRange, windowS
     return;
   }
 
+  console.time('Twitter data query');
   dbLogic.getUserDataForTimeRangeAsync(twitterUserId, 'twitter', timeRange)
     .then((twitterUserData) => {
+      console.timeEnd('Twitter data query');
+      console.time('Time slot caluclation');
       const timeSlots = getTimeSlotsByDays(timeRange, windowSize);
-      const simList = timeSlots.map((timeSlot) => {
-        return calculateEntitySimilarityOnTimeRange(
+      console.timeEnd('Time slot caluclation');
+      const simList = timeSlots.map((timeSlot, index) => {
+        // console.time(`Time for slot ${index}`);
+        const result = calculateEntitySimilarityOnTimeRange(
           twitterUserData,
           disqusData,
           timeSlot.windowStart,
           timeSlot.windowEnd
         );
+
+        return result;
+        // console.timeEnd(`Time for slot ${index}`);
       });
 
+      console.time('Making result');
       const nonzeroes = simList.filter(r => r > 0);
       const sum = nonzeroes.reduce((prevVal, elem) => prevVal + elem, 0);
       const avg = sum / simList.length;
-
+      console.timeEnd('Making result');
       callback(null, avg);
     })
     .catch((err) => {
@@ -437,7 +446,9 @@ const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, timeRang
     async.mapSeries(userIdList,
       (twitterUserId, callback) => {
         const userIdx = userIdList.indexOf(twitterUserId);
+        console.time('Intersection data read');
         readIntersectionData(userId, userIdx, (err, r) => {
+          console.timeEnd('Intersection data read');
           if (err) {
             callback(err);
             return;

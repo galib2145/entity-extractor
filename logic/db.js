@@ -205,7 +205,7 @@ const saveUserPosts = (userId, media, callback) => {
   (media === 'disqus' ?
     disqusAnalysisLogic.getDisqusCommentsAsync(userId) :
     twitterAnalysisLogic.getTwitterPostsAsync(userId))
-    .then((posts) => {
+  .then((posts) => {
       const formattedPosts = posts.map((post) => {
         const time = post.time;
         const intrTime = timeParser.parseTimeString(time);
