@@ -119,7 +119,7 @@ const saveData = (collectionName, data, callback) => {
   });
 };
 
-const getData = (collectionName, query, callback) => {
+const getData = (collectionName, query, projection, callback) => {
   getDB((err, db) => {
     if (err) {
       callback(err);
@@ -127,7 +127,7 @@ const getData = (collectionName, query, callback) => {
     }
 
     db.collection(collectionName, (err, collection) => {
-      collection.find(query).sort({ date: 1 }).toArray((error, resultSet) => {
+      collection.find(query, projection).sort({ date: 1 }).toArray((error, resultSet) => {
         if (error) {
           callback(error);
           return;
@@ -205,7 +205,7 @@ const saveUserPosts = (userId, media, callback) => {
   (media === 'disqus' ?
     disqusAnalysisLogic.getDisqusCommentsAsync(userId) :
     twitterAnalysisLogic.getTwitterPostsAsync(userId))
-    .then((posts) => {
+  .then((posts) => {
       const formattedPosts = posts.map((post) => {
         const time = post.time;
         const intrTime = timeParser.parseTimeString(time);
@@ -229,18 +229,21 @@ const saveUserPosts = (userId, media, callback) => {
 
 exports.saveUserPosts = saveUserPosts;
 
-const getUserPostsFromDb = (userId, media, startDate, endDate, callback) => {
+const getUserPostsFromDb = (userId, media, projection, startDate, endDate, callback) => {
   const getDataAsync = Promise.promisify(getData);
   const query = {
     userId,
-    date: {
-      $gte: startDate,
-      $lte: endDate,
-    },
   };
 
+  if (startDate && endDate) {
+    query['date'] = {
+      $gte: startDate,
+      $lte: endDate,
+    };
+  }
+
   const collectionName = `${media}Posts`;
-  getDataAsync(collectionName, query)
+  getDataAsync(collectionName, query, projection)
     .then((posts) => {
       callback(null, posts);
     })
