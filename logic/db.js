@@ -252,18 +252,21 @@ const getUserPostsFromDb = (userId, media, projection, startDate, endDate, callb
 
 exports.getUserPostsFromDb = getUserPostsFromDb;
 
-const getMentionListFromDb = (userId, media, startDate, endDate, callback) => {
+const getMentionListFromDb = (userId, media, projection, startDate, endDate, callback) => {
   const getDataAsync = Promise.promisify(getData);
   const query = {
     userId,
-    date: {
-      $gte: startDate,
-      $lte: endDate,
-    },
   };
 
+  if (startDate && endDate) {
+    query['date'] = {
+      $gte: startDate,
+      $lte: endDate,
+    };
+  }
+
   const collectionName = `${media}EntityMentions`;
-  getDataAsync(collectionName, query)
+  getDataAsync(collectionName, query, projection)
     .then((mentions) => {
       callback(null, mentions);
     })
@@ -338,10 +341,11 @@ const getUserDataForTimeRange = (userId, media, timeRange, callback) => {
 
   const getUserPostsFromDbAsync = Promise.promisify(getUserPostsFromDb);
   const getMentionListFromDbAsync = Promise.promisify(getMentionListFromDb);
-
+  const postProjection = { date: 1 };
+  const entityProjection = { date: 1, entity: 1 };
   const dataFetchingTasks = [
-    getUserPostsFromDbAsync(userId, media, startDate, endDate),
-    getMentionListFromDbAsync(userId, media, startDate, endDate)
+    getUserPostsFromDbAsync(userId, media, postProjection, startDate, endDate),
+    getMentionListFromDbAsync(userId, media, entityProjection, startDate, endDate)
   ];
 
   Promise.all(dataFetchingTasks)
