@@ -335,14 +335,13 @@ const saveUserDataInDB = (userId, callback) => {
 
 exports.saveUserDataInDB = saveUserDataInDB;
 
-const getUserDataForTimeRange = (userId, media, timeRange, callback) => {
+const getUserDataForTimeRange = (
+  userId, media, timeRange, postProjection, entityProjection, callback) => {
   const startDate = utils.getDateFromTime(timeRange.startTime);
   const endDate = utils.getDateFromTime(timeRange.endTime);
 
   const getUserPostsFromDbAsync = Promise.promisify(getUserPostsFromDb);
   const getMentionListFromDbAsync = Promise.promisify(getMentionListFromDb);
-  const postProjection = { date: 1 };
-  const entityProjection = { date: 1, entity: 1 };
   const dataFetchingTasks = [
     getUserPostsFromDbAsync(userId, media, postProjection, startDate, endDate),
     getMentionListFromDbAsync(userId, media, entityProjection, startDate, endDate)

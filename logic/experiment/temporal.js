@@ -221,6 +221,13 @@ const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime
   const twitterPosts = filterByDate(twitterData.posts, startDate, endDate);
   const disqusComments = filterByDate(disqusData.posts, startDate, endDate);
 
+  if (twitterPosts.length === 0 ||
+    disqusComments.length === 0 ||
+    disqusMentions.length === 0 ||
+    twitterMentions.length === 0) {
+    return 0;
+  }
+
   disqusMentions.sort((a, b) => {
     return a.entity.localeCompare(b.entity);
   });
@@ -228,13 +235,6 @@ const calculateEntitySimilarityOnTimeRange = (twitterData, disqusData, startTime
   twitterMentions.sort((a, b) => {
     return a.entity.localeCompare(b.entity);
   });
-
-  if (twitterPosts.length === 0 ||
-    disqusComments.length === 0 ||
-    disqusMentions.length === 0 ||
-    twitterMentions.length === 0) {
-    return 0;
-  }
 
   let uniqueDisqusMentions = makeUniqueEntityMap(disqusMentions);
   let uniqueTwitterMentions = makeUniqueEntityMap(twitterMentions);
@@ -394,13 +394,19 @@ const readIntersectionData = (userId, withUserIndex, callback) => {
     });
 };
 
+exports.readIntersectionData = readIntersectionData;
+
 const calculateEntitySimilarity = (twitterUserId, disqusData, timeRange, windowSize, callback) => {
   if (!timeRange) {
     callback(null, 0);
     return;
   }
 
-  dbLogic.getUserDataForTimeRangeAsync(twitterUserId, 'twitter', timeRange)
+  const postProjection = { date: 1 };
+  const entityProjection = { date: 1, entity: 1 };
+
+  dbLogic.getUserDataForTimeRangeAsync(
+    twitterUserId, 'twitter', timeRange, postProjection, entityProjection)
     .then((twitterUserData) => {
       const timeSlots = getOverlappingTimeSlotsByDays(timeRange, windowSize);
       const simList = timeSlots.map((timeSlot) => {
@@ -464,8 +470,7 @@ const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, timeRang
           };
         });
 
-        const res = formattedResults.sort((a, b) => b.sim - a.sim);
-        callback(null, res);
+        callback(null, formattedResults);
       });
   })
 };

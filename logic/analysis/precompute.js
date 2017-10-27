@@ -42,8 +42,14 @@ const getRequiredDisqusData = (disqusId, callback) => {
       disqusTimeRange = timeRange;
       const startDate = utils.getDateFromTime(timeRange.start);
       const endDate = utils.getDateFromTime(timeRange.end);
+      
       const postProjection = { date: 1 };
-      const entityProjection = { date: 1, entity: 1 };
+      const entityProjection = { 
+        date: 1, 
+        entity: 1, 
+        sentiment: 1
+      };
+
       const dataFetchingTasks = [
         dbLogic.getUserPostsFromDbAsync(disqusId, 'disqus', postProjection, startDate, endDate),
         dbLogic.getMentionListFromDbAsync(disqusId, 'disqus', entityProjection, startDate, endDate)

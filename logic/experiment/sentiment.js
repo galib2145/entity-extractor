@@ -11,6 +11,7 @@ const timeParser = require('../parsing/timeParser');
 const mathLogic = require('../math');
 
 const temporal = Promise.promisifyAll(require('./temporal'));
+const precompute = require('../analysis/precompute');
 
 const fileLogic = Promise.promisifyAll(require('../file.js'));
 
@@ -46,7 +47,7 @@ const getEntityMentionIntersection = (disqusMentions, twitterMentions) => {
   return intersection;
 };
 
-const calSentimentInfo = (mentions) => {
+const calcSentimentInfo = (mentions) => {
   const positiveMentions = mentions.filter(
     (m) => m.sentiment.type === 'positive');
 
@@ -89,7 +90,10 @@ const getUniqueMentions = (mentions) => {
   let uniqueMentions = {};
   mentions.forEach((a) => {
     const entity = a.entity;
-    const sentiment = a.sentiment.type;
+    let sentiment = 'neutral';
+    if (a.sentiment) {
+      const sentiment = a.sentiment.type;
+    }
 
     if (entity in uniqueMentions) {
       uniqueMentions[entity].totalPosts += 1;
@@ -108,27 +112,14 @@ const getUniqueMentions = (mentions) => {
   return uniqueMentions;
 };
 
-const calcEntitySimWithSentimentAndTimeRange = (
-  twitterData, disqusData,
-  startTime, endTime) => {
+const calcEntitySimWithSentimentAndTimeRange = (twitterData, disqusData, startTime, endTime) => {
   const startDate = new Date(startTime.year, startTime.month, startTime.day);
   const endDate = new Date(endTime.year, endTime.month, endTime.day);
 
-  const disqusMentions = disqusData.mentions.filter((m) =>
-    m.date >= startDate && m.date <= endDate
-  );
-
-  const twitterMentions = twitterData.mentions.filter((m) =>
-    m.date >= startDate && m.date <= endDate
-  );
-
-  const twitterPosts = twitterData.posts.filter((m) =>
-    m.date >= startDate && m.date <= endDate
-  );
-
-  const disqusComments = disqusData.posts.filter((m) =>
-    m.date >= startDate && m.date <= endDate
-  );
+  const disqusMentions = temporal.filterByDate(disqusData.mentions, startDate, endDate);
+  const twitterMentions = temporal.filterByDate(twitterData.mentions, startDate, endDate);
+  const twitterPosts = temporal.filterByDate(twitterData.posts, startDate, endDate);
+  const disqusComments = temporal.filterByDate(disqusData.posts, startDate, endDate);
 
   if (twitterPosts.length === 0 ||
     disqusComments.length === 0 ||
@@ -146,8 +137,8 @@ const calcEntitySimWithSentimentAndTimeRange = (
     return 0;
   }
 
-  const disqusSentimentInfo = calSentimentInfo(disqusMentions);
-  const twitterSentimentInfo = calSentimentInfo(twitterMentions);
+  const disqusSentimentInfo = calcSentimentInfo(disqusMentions);
+  const twitterSentimentInfo = calcSentimentInfo(twitterMentions);
 
   const uEPList = entityIntersectionInfoList.map((e) => {
     return calcValForEntityWithSentiment(
@@ -161,24 +152,27 @@ const calcEntitySimWithSentimentAndTimeRange = (
   return uEPList.reduce((prevVal, elem) => prevVal + elem, 0);
 };
 
-const calculateEntitySimilarity = (twitterUserId, disqusUserId, windowSize, callback) => {
-  let analysisTimeRange = null;
-  temporal.getAnalysisTimeRangeAsync(twitterUserId, disqusUserId)
-    .then((timeRange) => {
-      analysisTimeRange = timeRange;
-      return Promise.all([
-        dbLogic.getUserDataForTimeRangeAsync(twitterUserId, 'twitter', timeRange),
-        dbLogic.getUserDataForTimeRangeAsync(disqusUserId, 'disqus', timeRange),
-      ]);
-    })
-    .then((results) => {
-      const twitterUserData = results[0];
-      const disqusUserData = results[1];
-      const timeSlots = temporal.getOverlappingTimeSlotsByDays(analysisTimeRange, windowSize);
+const calculateEntitySimilarity = (twitterUserId, disqusData, timeRange, windowSize, callback) => {
+  if (!timeRange) {
+    callback(null, 0);
+    return;
+  }
+
+  const postProjection = { date: 1 };
+  const entityProjection = { 
+    date: 1, 
+    entity: 1, 
+    sentiment: 1
+  };
+
+  dbLogic.getUserDataForTimeRangeAsync(
+    twitterUserId, 'twitter', timeRange, postProjection, entityProjection)
+    .then((twitterUserData) => {
+      const timeSlots = temporal.getOverlappingTimeSlotsByDays(timeRange, windowSize);
       const simList = timeSlots.map((timeSlot) => {
         return calcEntitySimWithSentimentAndTimeRange(
           twitterUserData,
-          disqusUserData,
+          disqusData,
           timeSlot.windowStart,
           timeSlot.windowEnd
         );
@@ -197,27 +191,47 @@ const calculateEntitySimilarity = (twitterUserId, disqusUserId, windowSize, call
 
 };
 
-const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, windowSize, callback) => {
-  async.mapSeries(userIdList,
-    (twitterUserId, callback) => {
-      calculateEntitySimilarity(twitterUserId, userId, windowSize, callback);
-    }, (err, results) => {
-      if (err) {
-        callback(err);
-        return;
-      }
+const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, timeRangeData, windowSize, callback) => {
+  precompute.getRequiredDisqusData(userId, (err, disqusData) => {
+    if (err) {
+      callback(err);
+      return;
+    }
 
-      const formattedResults = results.map((r, i) => {
-        return {
-          user: userIdList[i],
-          sim: r,
-        };
+    async.mapSeries(userIdList,
+      (twitterUserId, callback) => {
+        const userIdx = userIdList.indexOf(twitterUserId);
+        temporal.readIntersectionData(userId, userIdx, (err, r) => {
+          if (err) {
+            callback(err);
+            return;
+          }
+
+          if (r == 0) {
+            callback(null, 0);
+            return;
+          }
+          const timeRange = timeRangeData[userId][twitterUserId];
+          calculateEntitySimilarity(twitterUserId, disqusData, timeRange, windowSize, callback);
+        })
+
+      }, (err, results) => {
+        if (err) {
+          callback(err);
+          return;
+        }
+
+        const formattedResults = results.map((r, i) => {
+          return {
+            user: userIdList[i],
+            sim: r,
+          };
+        });
+
+        callback(null, formattedResults);
       });
-
-      const res = formattedResults.sort((a, b) => b.sim - a.sim);
-      callback(null, res);
-    });
-
+  })
 };
 
 exports.generateEntitySimilarityRankingWithTwitter = generateEntitySimilarityRankingWithTwitter;
+
