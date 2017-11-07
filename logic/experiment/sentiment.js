@@ -86,14 +86,18 @@ const calcValForEntityWithSentiment = (
   return mathLogic.getDotProduct(sValsDisqus, sValsTwitter);
 };
 
-const getUniqueMentions = (mentions) => {
+const getUniqueMentionsAndSentimentInfo = (mentions) => {
   let uniqueMentions = {};
+  let sentimentInfo = {
+    positive: 0,
+    negative: 0,
+    neutral: 0
+  };
+
   mentions.forEach((a) => {
     const entity = a.entity;
-    let sentiment = 'neutral';
-    if (a.sentiment) {
-      const sentiment = a.sentiment.type;
-    }
+    const sentiment = a.sentiment.type;
+    sentimentInfo[sentiment] += 1;
 
     if (entity in uniqueMentions) {
       uniqueMentions[entity].totalPosts += 1;
@@ -109,7 +113,10 @@ const getUniqueMentions = (mentions) => {
     }
   });
 
-  return uniqueMentions;
+  return {
+    uniqueMentions,
+    sentimentInfo
+  };
 };
 
 const calcEntitySimWithSentimentAndTimeRange = (twitterData, disqusData, startTime, endTime) => {
@@ -128,17 +135,22 @@ const calcEntitySimWithSentimentAndTimeRange = (twitterData, disqusData, startTi
     return 0;
   }
 
-  const uniqueDisqusMentions = getUniqueMentions(disqusMentions);
-  const uniqueTwitterMentions = getUniqueMentions(twitterMentions);
+  const disqusDetail = getUniqueMentionsAndSentimentInfo(disqusMentions);
+  const twitterDetail = getUniqueMentionsAndSentimentInfo(twitterMentions);
+  const uniqueDisqusMentions = disqusDetail.uniqueMentions;
+  const uniqueTwitterMentions = twitterDetail.uniqueMentions;
 
-  const entityIntersectionInfoList = getEntityMentionIntersection(uniqueDisqusMentions, uniqueTwitterMentions);
-
+  const entityIntersectionInfoList = getEntityMentionIntersection(
+    uniqueDisqusMentions, uniqueTwitterMentions);
   if (entityIntersectionInfoList.length === 0) {
     return 0;
   }
 
-  const disqusSentimentInfo = calcSentimentInfo(disqusMentions);
-  const twitterSentimentInfo = calcSentimentInfo(twitterMentions);
+  console.log(`${startDate.toISOString()} - ${endDate.toISOString()}`);
+  console.log(entityIntersectionInfoList);
+
+  const disqusSentimentInfo = disqusDetail.sentimentInfo;
+  const twitterSentimentInfo = twitterDetail.sentimentInfo;
 
   const uEPList = entityIntersectionInfoList.map((e) => {
     return calcValForEntityWithSentiment(
@@ -149,6 +161,7 @@ const calcEntitySimWithSentimentAndTimeRange = (twitterData, disqusData, startTi
       twitterPosts.length);
   });
 
+  console.log(uEPList);
   return uEPList.reduce((prevVal, elem) => prevVal + elem, 0);
 };
 
@@ -159,9 +172,9 @@ const calculateEntitySimilarity = (twitterUserId, disqusData, timeRange, windowS
   }
 
   const postProjection = { date: 1 };
-  const entityProjection = { 
-    date: 1, 
-    entity: 1, 
+  const entityProjection = {
+    date: 1,
+    entity: 1,
     sentiment: 1
   };
 
@@ -169,6 +182,7 @@ const calculateEntitySimilarity = (twitterUserId, disqusData, timeRange, windowS
     twitterUserId, 'twitter', timeRange, postProjection, entityProjection)
     .then((twitterUserData) => {
       const timeSlots = temporal.getOverlappingTimeSlotsByDays(timeRange, windowSize);
+      console.log(timeSlots.length);
       const simList = timeSlots.map((timeSlot) => {
         return calcEntitySimWithSentimentAndTimeRange(
           twitterUserData,
@@ -234,4 +248,3 @@ const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, timeRang
 };
 
 exports.generateEntitySimilarityRankingWithTwitter = generateEntitySimilarityRankingWithTwitter;
-

@@ -18,7 +18,7 @@ const runExperiment = (startIndex, endIndex, simFunc, windowSize, outputFileName
   const processStart = new Date();
   const totalUserList = fileLogic.getUserIdList();
   const candidateList = totalUserList.slice(startIndex, endIndex);
-  const toMatchList = totalUserList.slice(0, totalUserList.length);
+  const toMatchList = totalUserList.slice(0, 1);
   console.time('Calc time range');
   const timeRangeData = precompute.readTrData();
   console.timeEnd('Calc time range');
