@@ -1,5 +1,6 @@
 const path = require('path');
 const Promise = require('bluebird');
+const prompt = require('prompt');
 const fs = Promise.promisifyAll(require('fs'));
 const async = require('async');
 const _ = require('lodash');
@@ -146,9 +147,6 @@ const calcEntitySimWithSentimentAndTimeRange = (twitterData, disqusData, startTi
     return 0;
   }
 
-  console.log(`${startDate.toISOString()} - ${endDate.toISOString()}`);
-  console.log(entityIntersectionInfoList);
-
   const disqusSentimentInfo = disqusDetail.sentimentInfo;
   const twitterSentimentInfo = twitterDetail.sentimentInfo;
 
@@ -161,7 +159,6 @@ const calcEntitySimWithSentimentAndTimeRange = (twitterData, disqusData, startTi
       twitterPosts.length);
   });
 
-  console.log(uEPList);
   return uEPList.reduce((prevVal, elem) => prevVal + elem, 0);
 };
 
@@ -182,7 +179,6 @@ const calculateEntitySimilarity = (twitterUserId, disqusData, timeRange, windowS
     twitterUserId, 'twitter', timeRange, postProjection, entityProjection)
     .then((twitterUserData) => {
       const timeSlots = temporal.getOverlappingTimeSlotsByDays(timeRange, windowSize);
-      console.log(timeSlots.length);
       const simList = timeSlots.map((timeSlot) => {
         return calcEntitySimWithSentimentAndTimeRange(
           twitterUserData,
@@ -248,3 +244,111 @@ const generateEntitySimilarityRankingWithTwitter = (userId, userIdList, timeRang
 };
 
 exports.generateEntitySimilarityRankingWithTwitter = generateEntitySimilarityRankingWithTwitter;
+
+const makeCandidateListForUser = (userFilePath, callback) => {
+  fs.readFileAsync(userFilePath)
+    .then((r) => {
+      const result = JSON.parse(r);
+      const userId = result.userId;
+      const simList = result.res;
+      simList.sort((a, b) => b.sim - a.sim);
+      const userIdx = simList.findIndex((a) => a.user === userId);
+      if (simList[userIdx].sim === 0) {
+        callback(null, null);
+      }
+
+      const candidateList = [];
+      for (let i = 0; i <= userIdx; i++) {
+        candidateList.push(simList[i].user);
+      }
+
+      callback(null, {
+        userId,
+        candidateList
+      });
+    })
+    .catch((err) => {
+      callback(err);
+    })
+};
+
+const makeSentimentCandidateList =  (temporalResultFilePath, callback) => {
+  const makeCandidateListForUserAsync = Promise.promisify(
+    makeCandidateListForUser);
+
+  fs.readdirAsync(temporalResultFilePath)
+    .then((fileList) => {
+      const clMakingTasks = fileList.map((fn) => {
+        const fp = `${temporalResultFilePath}/${fn}`;
+        return makeCandidateListForUserAsync(fp);
+      });
+
+      return Promise.all(clMakingTasks);
+    })
+    .then((clLists) => {
+      callback(null, clLists.filter(c => c));
+    })
+    .catch((err) => {
+      callback(err);
+    })
+};
+
+exports.makeSentimentCandidateList = makeSentimentCandidateList;
+
+// makeSentimentCandidateList('/home/saad/cosine-7-ov', (err, r) => {
+//   if (err) {
+//     console.log(err);
+//     return;
+//   }
+
+//   console.log(r[0]);
+// });
+
+prompt.get(['temporalFolder', 'outputFolder'], (err, result) => {
+  const temporalFolder = path.join(process.env.HOME, `/${result.temporalFolder}`);
+  const outputFolder = result.outputFolder;
+  const makeSentimentCandidateListAsync = Promise.promisify(makeSentimentCandidateList);
+  console.time('Read time range data');
+  const timeRangeData = precompute.readTrData();
+  console.timeEnd('Read time range data');
+  const windowSize = parseInt((result.temporalFolder.split('-')[1], 10));
+
+  makeSentimentCandidateListAsync(temporalFolder)
+    .then((userCandidateInfoList) => {  
+      async.forEachOfSeries(userCandidateInfoList, (candidateInfo, index, callback) => {
+        const userId = candidateInfo.userId;
+        console.log(`\nStarting for user: ${userId}`);
+        const candidates = candidateInfo.candidateList;
+        console.log(`This user has ${candidates.length} candidates`);
+        const resultPath = path.join(process.env.HOME, `/${outputFolder}/${userId}`);
+        generateEntitySimilarityRankingWithTwitter(
+          userId,
+          candidates,
+          timeRangeData,
+          windowSize,
+          (err, res) => {
+            if (err) {
+              console.log(err);
+              callback();
+              return;
+            }
+
+            const result = {
+              userId,
+              res,
+            };
+      
+            const resultStr = JSON.stringify(result, null, 2);
+            fileLogic.writeFile(resultPath, resultStr, callback);
+          }
+        )
+      }, (err) => {
+        if (err) {
+          console.log(err.message);
+        }
+
+        console.log('Task finishd!');
+        return;
+      });
+  })
+});
